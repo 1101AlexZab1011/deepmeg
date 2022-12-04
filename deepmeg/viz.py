@@ -9,6 +9,7 @@ from typing import Optional, Union, NoReturn
 from .params import SpatialParameters, TemporalParameters, WaveForms
 from dataclasses import dataclass
 from matplotlib.widgets import Button
+from collections.abc import Iterable
 
 
 def plot_patterns(
@@ -559,7 +560,7 @@ def plot_spatial_weights(
         sums = np.sum(np.abs(data), axis=0)
     elif summarize == 'abssum':
         sums = np.abs(np.sum(data, axis=0))
-    elif isinstance(summarize, list) and len(summarize) == y_lim:
+    elif isinstance(summarize, Iterable) and len(summarize) == y_lim:
         sums = np.array(summarize)
     else:
         raise NotImplementedError(
