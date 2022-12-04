@@ -494,8 +494,8 @@ def plot_spatial_weights(
                             ),
                             color='tab:green'
                         )
-                    case 'patterns':
-                        legend.append('Filtering patterns')
+                    case 'pattern':
+                        legend.append('Filtering pattern')
                         ax23.plot(
                             sp.stats.zscore(
                                 temporal_parameters.fpatterns[sorting_callback.sorted_indices[iy]]
