@@ -300,7 +300,7 @@ def plot_spatial_weights(
     info: mne.Info,
     summarize: Optional[Union[str, list[float]]] = 'sum',
     title: Optional[str] = 'Spatial Patterns',
-    temp_params: Optional[list[str]] = ['input', 'responce', 'output'],
+    temp_params: Optional[list[str]] = ['input', 'response', 'output'],
     show: Optional[bool] = True,
     logscale: Optional[bool] = False
 ) -> Union[mp.figure.Figure, NoReturn]:
@@ -475,27 +475,31 @@ def plot_spatial_weights(
                         ax23.plot(
                             temporal_parameters.franges,
                             sp.stats.zscore(temporal_parameters.finputs[sorting_callback.sorted_indices[iy]]),
+                            color='tab:blue'
                         )
                     case 'output':
                         legend.append('Filter output')
                         ax23.plot(
                             temporal_parameters.franges,
                             sp.stats.zscore(temporal_parameters.foutputs[sorting_callback.sorted_indices[iy]]),
+                            color='tab:orange'
                         )
                     case 'responce':
-                        legend.append('Filter responce')
+                        legend.append('Filter response')
                         ax23.plot(
                             temporal_parameters.franges,
                             sp.stats.zscore(
                                 temporal_parameters.fresponces[sorting_callback.sorted_indices[iy]]
-                            )
+                            ),
+                            color='tab:green'
                         )
                     case 'patterns':
                         legend.append('Filtering patterns')
                         ax23.plot(
                             sp.stats.zscore(
                                 temporal_parameters.fpatterns[sorting_callback.sorted_indices[iy]]
-                            )
+                            ),
+                            color='tab:pink'
                         )
                     case _:
                         raise NotImplementedError(f'Temporal parameter {param} is not implemented')
@@ -523,7 +527,7 @@ def plot_spatial_weights(
             ax22.set_xticklabels(times)
             ax22.set_xlabel('Time (s)')
             ax22.set_ylabel('Frequency (Hz)')
-            ax23.legend(['Filter input', 'Filter output', 'Filter responce', 'Filtering patterns'], loc='upper right')
+            ax23.legend(legend, loc='upper right')
             ax23.spines['top'].set_alpha(.2)
             ax23.spines['right'].set_alpha(.2)
             ax23.spines['left'].set_alpha(.2)
