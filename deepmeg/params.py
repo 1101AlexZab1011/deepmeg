@@ -9,7 +9,7 @@ from typing import Optional, NoReturn, Any
 
 
 SpatialParameters = namedtuple('SpatialParameters', 'patterns filters')
-TemporalParameters = namedtuple('TemporalParameters', 'franges finputs foutputs fresponces')
+TemporalParameters = namedtuple('TemporalParameters', 'franges finputs foutputs fresponces fpatterns')
 ComponentsOrder = namedtuple('ComponentsOrder', 'l2 compwise_loss weight output_corr weight_corr')
 Predictions = namedtuple('Predictions', 'y_p y_true')
 WaveForms = namedtuple('WaveForms', 'evoked induced times tcs')
@@ -102,16 +102,18 @@ def compute_temporal_parameters(model, *, fs=None):
     franges = None
     foutputs = list()
     fresponces = list()
+    fpatterns = list()
 
     for i, flt in enumerate(out_filters.T):
         w, h = (lambda w, h: (w, np.abs(h)))(*sl.freqz(flt, 1, worN=fs))
-        foutputs.append(np.abs(finputs[i, :] * h))
+        foutputs.append(np.real(finputs[i, :] * h * np.conj(h)))
+        fpatterns.append(np.abs(finputs[i, :] * h))
 
         if franges is None:
             franges = w / np.pi * fs / 2
         fresponces.append(h)
 
-    return franges, finputs, foutputs, fresponces
+    return franges, finputs, foutputs, fresponces, fpatterns
 
 
 def get_order(order: np.array, *args):
