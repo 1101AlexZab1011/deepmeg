@@ -484,7 +484,7 @@ def plot_spatial_weights(
                             sp.stats.zscore(temporal_parameters.foutputs[sorting_callback.sorted_indices[iy]]),
                             color='tab:orange'
                         )
-                    case 'responce':
+                    case 'response':
                         legend.append('Filter response')
                         ax23.plot(
                             temporal_parameters.franges,
