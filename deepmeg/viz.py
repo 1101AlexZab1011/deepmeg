@@ -300,6 +300,7 @@ def plot_spatial_weights(
     info: mne.Info,
     summarize: Optional[Union[str, list[float]]] = 'sum',
     title: Optional[str] = 'Spatial Patterns',
+    temp_params: Optional[list[str]] = ['input', 'responce', 'output'],
     show: Optional[bool] = True,
     logscale: Optional[bool] = False
 ) -> Union[mp.figure.Figure, NoReturn]:
@@ -466,19 +467,38 @@ def plot_spatial_weights(
             ax22.set_aspect('auto')
             ax22_t.set_aspect('auto')
             # ax22_t.set_ylim(top=1, bottom=-1)
-            ax23.plot(
-                temporal_parameters.franges,
-                sp.stats.zscore(temporal_parameters.finputs[sorting_callback.sorted_indices[iy]]),
-                temporal_parameters.franges,
-                sp.stats.zscore(temporal_parameters.foutputs[sorting_callback.sorted_indices[iy]]),
-                temporal_parameters.franges,
-                sp.stats.zscore(
-                    temporal_parameters.fresponces[sorting_callback.sorted_indices[iy]]
-                ),
-                sp.stats.zscore(
-                    temporal_parameters.fpatterns[sorting_callback.sorted_indices[iy]]
-                )
-            )
+            legend = list()
+            for param in temp_params:
+                match param:
+                    case 'input':
+                        legend.append('Filter input')
+                        ax23.plot(
+                            temporal_parameters.franges,
+                            sp.stats.zscore(temporal_parameters.finputs[sorting_callback.sorted_indices[iy]]),
+                        )
+                    case 'output':
+                        legend.append('Filter output')
+                        ax23.plot(
+                            temporal_parameters.franges,
+                            sp.stats.zscore(temporal_parameters.foutputs[sorting_callback.sorted_indices[iy]]),
+                        )
+                    case 'responce':
+                        legend.append('Filter responce')
+                        ax23.plot(
+                            temporal_parameters.franges,
+                            sp.stats.zscore(
+                                temporal_parameters.fresponces[sorting_callback.sorted_indices[iy]]
+                            )
+                        )
+                    case 'patterns':
+                        legend.append('Filtering patterns')
+                        ax23.plot(
+                            sp.stats.zscore(
+                                temporal_parameters.fpatterns[sorting_callback.sorted_indices[iy]]
+                            )
+                        )
+                    case _:
+                        raise NotImplementedError(f'Temporal parameter {param} is not implemented')
 
             ax22_t.set_ylabel('Amplitude', labelpad=12.5, rotation=270)
             ax22_t.spines['top'].set_alpha(.2)
