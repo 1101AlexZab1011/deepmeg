@@ -475,6 +475,9 @@ def plot_spatial_weights(
                 sp.stats.zscore(
                     temporal_parameters.fresponces[sorting_callback.sorted_indices[iy]]
                 ),
+                sp.stats.zscore(
+                    temporal_parameters.fpatterns[sorting_callback.sorted_indices[iy]]
+                )
             )
 
             ax22_t.set_ylabel('Amplitude', labelpad=12.5, rotation=270)
@@ -500,14 +503,14 @@ def plot_spatial_weights(
             ax22.set_xticklabels(times)
             ax22.set_xlabel('Time (s)')
             ax22.set_ylabel('Frequency (Hz)')
-            ax23.legend(['Filter input', 'Filter output', 'Filter responce'], loc='upper right')
+            ax23.legend(['Filter input', 'Filter output', 'Filter responce', 'Filtering patterns'], loc='upper right')
             ax23.spines['top'].set_alpha(.2)
             ax23.spines['right'].set_alpha(.2)
             ax23.spines['left'].set_alpha(.2)
             ax23.spines['bottom'].set_alpha(.2)
             ax23.tick_params(axis='both', which='both', length=5, color='#00000050')
             ax23.set_xlabel('Frequency (Hz)')
-            ax23.set_ylabel('Amplitude')
+            ax23.set_ylabel('Amplitude (z-score)')
             # ax23.set_ylim(top=1.2)
             ax23.set_xlim([0, 70])
             ax22_t.set_xlim([2 * crop, len(waveforms.times) - 2 * crop])
