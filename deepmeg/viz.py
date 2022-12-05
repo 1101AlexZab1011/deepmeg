@@ -110,7 +110,7 @@ def plot_tempospectral(
     ylim: Optional[Union[int, float]] = None,
     legend: Optional[Union[int, float]] = None,
     spatial_data_type: Optional[str] = 'patterns',
-    topomap_kwargs: Optional[dict] = None
+    topomap_kwargs: Optional[dict] = None,
 ) -> mp.figure.Figure:
 
     def wrap_in_list(content):
@@ -303,7 +303,8 @@ def plot_spatial_weights(
     title: Optional[str] = 'Spatial Patterns',
     temp_params: Optional[list[str]] = ['input', 'response', 'output'],
     show: Optional[bool] = True,
-    logscale: Optional[bool] = False
+    logscale: Optional[bool] = False,
+    shift_induced_times: Optional[bool | float] = False
 ) -> Union[mp.figure.Figure, NoReturn]:
 
     mp.use('Qt5Agg')
@@ -399,7 +400,7 @@ def plot_spatial_weights(
     def onclick(event):
         flim = 70
         crop = .05
-        shift = True
+        shift = shift_induced_times
 
         if ax1.lines:
 
@@ -425,7 +426,7 @@ def plot_spatial_weights(
                 induced[i] /= ind_course.mean()
 
             color = colors[sorting_callback._sorted_indices[iy]]
-            line = mp.lines.Line2D([0, x_lim], [iy, iy], color=color, linewidth=16, alpha=.4)
+            line = mp.lines.Line2D([0, x_lim], [iy, iy], color=color, linewidth=2.56*data.shape[0]/data.shape[1], alpha=.4)
             ax1.add_line(line)
             fig1.canvas.draw()
             fig2 = plt.figure(constrained_layout=False)
@@ -521,8 +522,10 @@ def plot_spatial_weights(
             times = np.unique(np.round(waveforms.times, 1))
             ranges = np.linspace(0, len(waveforms.times), len(times)).astype(int)
 
-            if shift:
+            if shift is True:
                 times = np.round(times - times.mean(), 2)
+            elif isinstance(shift, (int, float)):
+                times = np.round(times - shift, 2)
 
             ax22.set_xticks(ranges)
             ax22.set_xticklabels(times)
