@@ -12,7 +12,7 @@ SpatialParameters = namedtuple('SpatialParameters', 'patterns filters')
 TemporalParameters = namedtuple('TemporalParameters', 'franges finputs foutputs fresponces fpatterns')
 ComponentsOrder = namedtuple('ComponentsOrder', 'l2 compwise_loss weight output_corr weight_corr')
 Predictions = namedtuple('Predictions', 'y_p y_true')
-WaveForms = namedtuple('WaveForms', 'evoked induced times tcs')
+WaveForms = namedtuple('WaveForms', 'evoked induced induced_filt times tcs')
 
 
 def compute_patterns(model, data_path=None, *, output='patterns'):
@@ -78,6 +78,8 @@ def compute_patterns(model, data_path=None, *, output='patterns'):
     else:
         model.patterns = demx
 
+    model.lat_tcs_filt = np.dot(demx.T, X_filt)
+
     del X
 
     #  Temporal conv stuff
@@ -140,20 +142,27 @@ def compute_waveforms(model: mf.models.BaseModel) -> tuple[np.ndarray, np.ndarra
     time_courses = np.squeeze(model.lat_tcs.reshape(
         [model.specs['n_latent'], -1, model.dataset.h_params['n_t']]
     ))
+    time_courses_filtered = np.squeeze(model.lat_tcs_filt.reshape(
+        [model.specs['n_latent'], -1, model.dataset.h_params['n_t']]
+    ))
     times = (1 / float(model.dataset.h_params['fs'])) *\
         np.arange(model.dataset.h_params['n_t'])
     induced = list()
+    induced_filt = list()
 
-    for tc in time_courses:
+    for tc, tc_filt in zip(time_courses, time_courses_filtered):
         ls_induced = list()
+        ls_induced_filt = list()
 
-        for lc in tc:
-            freqs = np.arange(1, 71)
+        for lc, lc_filt in zip(tc, tc_filt):
+            freqs = np.arange(1, model.dataset.h_params['fs']//2)
             ls_induced.append(np.abs(compute_morlet_cwt(lc, times, freqs)))
+            ls_induced_filt.append(np.abs(compute_morlet_cwt(lc_filt, times, freqs)))
 
         induced.append(np.array(ls_induced).mean(axis=0))
+        induced_filt.append(np.array(ls_induced_filt).mean(axis=0))
 
-    return np.array(induced), times, time_courses
+    return np.array(induced), np.array(induced_filt), times, time_courses
 
 
 def save_parameters(content: Any, path: str, parameters_type: Optional[str] = '') -> NoReturn:
