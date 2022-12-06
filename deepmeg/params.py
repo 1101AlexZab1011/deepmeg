@@ -12,7 +12,7 @@ SpatialParameters = namedtuple('SpatialParameters', 'patterns filters')
 TemporalParameters = namedtuple('TemporalParameters', 'franges finputs foutputs fresponces fpatterns')
 ComponentsOrder = namedtuple('ComponentsOrder', 'l2 compwise_loss weight output_corr weight_corr')
 Predictions = namedtuple('Predictions', 'y_p y_true')
-WaveForms = namedtuple('WaveForms', 'evoked induced induced_filt times tcs')
+WaveForms = namedtuple('WaveForms', 'evoked evoked_filt induced induced_filt times tcs')
 
 
 def compute_patterns(model, data_path=None, *, output='patterns'):
