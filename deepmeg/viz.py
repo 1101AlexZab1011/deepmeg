@@ -304,7 +304,8 @@ def plot_spatial_weights(
     temp_params: Optional[list[str]] = ['input', 'response', 'output'],
     show: Optional[bool] = True,
     logscale: Optional[bool] = False,
-    shift_induced_times: Optional[bool | float] = False
+    shift_induced_times: Optional[bool | float] = False,
+    filtered_induced: Optional[bool] = False
 ) -> Union[mp.figure.Figure, NoReturn]:
 
     mp.use('Qt5Agg')
@@ -416,6 +417,11 @@ def plot_spatial_weights(
                 and -.5 < event.ydata < y_lim:
             iy = int(np.rint(iy))
             induced = waveforms.induced.copy()[
+                sorting_callback.sorted_indices[iy],
+                :flim,
+                :
+            ] if not filtered_induced else\
+                waveforms.induced_filt.copy()[
                 sorting_callback.sorted_indices[iy],
                 :flim,
                 :
