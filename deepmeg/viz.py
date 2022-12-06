@@ -455,8 +455,10 @@ def plot_spatial_weights(
                 title=''
             )
             ax22_t = ax22.twinx()
+            evoked = waveforms.evoked[sorting_callback.sorted_indices[iy]] if not filtered_induced else\
+                waveforms.evoked_filt[sorting_callback.sorted_indices[iy]]
             ax22_t.plot(
-                sp.stats.zscore(waveforms.evoked[sorting_callback.sorted_indices[iy]]),
+                sp.stats.zscore(evoked),
                 '#454545'
             )
             pos = ax22.imshow(
