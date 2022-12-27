@@ -6,7 +6,7 @@ import matplotlib as mpl
 import copy
 import numpy as np
 from typing import Optional, Union, NoReturn
-from .params import SpatialParameters, TemporalParameters, WaveForms
+from .params import CroppingParameters, SpatialParameters, TemporalParameters, WaveForms, moving_average
 from dataclasses import dataclass
 from matplotlib.widgets import Button
 from collections.abc import Iterable
@@ -299,6 +299,7 @@ def plot_spatial_weights(
     temporal_parameters: TemporalParameters,
     waveforms: WaveForms,
     info: mne.Info,
+    croppings: Optional[CroppingParameters] = None,
     summarize: Optional[Union[str, list[float]]] = 'sum',
     title: Optional[str] = 'Spatial Patterns',
     temp_params: Optional[list[str]] = ['input', 'response', 'output'],
@@ -436,16 +437,30 @@ def plot_spatial_weights(
             ax1.add_line(line)
             fig1.canvas.draw()
             fig2 = plt.figure(constrained_layout=False)
-            gs2 = fig2.add_gridspec(
-                nrows=10,
-                ncols=3,
-                bottom=.1,
-                wspace=.05,
-                hspace=.1
-            )
-            ax21 = fig2.add_subplot(gs2[:, :-1])
-            ax22 = fig2.add_subplot(gs2[0:5, -1])
-            ax23 = fig2.add_subplot(gs2[5:, -1])
+            if croppings is None:
+                gs2 = fig2.add_gridspec(
+                    nrows=10,
+                    ncols=3,
+                    bottom=.1,
+                    wspace=.05,
+                    hspace=.1
+                )
+                ax21 = fig2.add_subplot(gs2[:, :-1])
+                ax22 = fig2.add_subplot(gs2[0:5, -1])
+                ax23 = fig2.add_subplot(gs2[5:, -1])
+            else:
+                gs2 = fig2.add_gridspec(
+                    nrows=10,
+                    ncols=16,
+                    bottom=.1,
+                    wspace=.05,
+                    hspace=.1
+                )
+                ax21 = fig2.add_subplot(gs2[0:4, :-8])
+                ax22 = fig2.add_subplot(gs2[0:5, -7:])
+                ax23 = fig2.add_subplot(gs2[5:, -7:])
+                ax24 = fig2.add_subplot(gs2[5:, :-9])
+
             plot_patterns(
                 data,
                 info,
@@ -553,6 +568,23 @@ def plot_spatial_weights(
 
             if logscale:
                 ax23.set_yscale('log')
+
+            if croppings:
+                ax24.spines['top'].set_alpha(.2)
+                ax24.spines['right'].set_alpha(.2)
+                ax24.spines['left'].set_alpha(.2)
+                ax24.spines['bottom'].set_alpha(.2)
+                envelope = croppings.envelopes[sorting_callback.sorted_indices[iy]]
+                envelope = np.reshape(envelope, (-1, len(waveforms.times)))
+                ax24.plot(
+                    moving_average(envelope.mean(0), 5)
+                )
+                ax24.plot(
+                    moving_average(croppings.eig_estimate[sorting_callback.sorted_indices[iy]])
+                )
+                ax24.plot(
+                    moving_average(croppings.loss_estimate[sorting_callback.sorted_indices[iy]])
+                )
 
             fig2.suptitle(f'Latent source {sorting_callback.sorted_indices[iy] + 1}')
             plt.show()

@@ -3,6 +3,7 @@ import mneflow
 import mneflow as mf
 import numpy as np
 import tensorflow as tf
+import scipy as sp
 import scipy.signal as sl
 import pickle
 from typing import Optional, NoReturn, Any
@@ -13,6 +14,7 @@ TemporalParameters = namedtuple('TemporalParameters', 'franges finputs foutputs 
 ComponentsOrder = namedtuple('ComponentsOrder', 'l2 compwise_loss weight output_corr weight_corr')
 Predictions = namedtuple('Predictions', 'y_p y_true')
 WaveForms = namedtuple('WaveForms', 'evoked evoked_filt induced induced_filt times tcs')
+CroppingParameters = namedtuple("CroppingParameters", "loss_estimate eig_estimate envelopes compression_weights")
 
 
 def compute_patterns(model, data_path=None, *, output='patterns'):
@@ -176,3 +178,84 @@ def save_parameters(content: Any, path: str, parameters_type: Optional[str] = ''
     pickle.dump(content, open(path, 'wb'))
 
     print('Successfully saved')
+
+
+def eigencentrality(matrix: np.ndarray) -> np.ndarray:
+    """
+    Calculate the eigencentrality of a matrix.
+
+    Parameters
+    ----------
+    matrix : np.ndarray
+        The matrix to calculate the eigencentrality of.
+
+    Returns
+    -------
+    np.ndarray
+        The eigencentrality of the matrix.
+    """
+    eigenvalues, eigenvectors = np.linalg.eig(matrix)
+    eigencentrality = eigenvectors[:,0]
+    return eigencentrality
+
+
+def moving_average(data: np.ndarray, kernel_size: int = 20) -> np.ndarray:
+    """
+    Compute the moving average of a given data array.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        The data array.
+    kernel_size : int
+        The size of the kernel.
+
+    Returns
+    -------
+    np.ndarray
+        The moving average of the data array.
+    """
+    kernel = np.ones(kernel_size) / kernel_size
+    data_convolved = np.convolve(data, kernel, mode='same')
+    return np.concatenate([
+        [np.nan for i in range(kernel_size//2)],
+        sp.stats.zscore(data_convolved[kernel_size//2:-kernel_size//2]),
+        [np.nan for i in range(kernel_size//2)],
+    ])
+
+
+def compute_cropping(model) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Compute the cropping of the latent components time courses.
+
+    Parameters
+    ----------
+    model : mneflow.models.BaseModel
+        The model to compute the cropping for.
+
+    Returns
+    -------
+    temp_relevance_loss : np.ndarray
+        The temporal relevance loss.
+    eigencentrality : np.ndarray
+        The eigencentrality of compression weights covariance.
+    time_courses_env : np.ndarray
+        The latent component envelopes.
+    compression_weights : np.ndarray
+        The compression weights.
+    """
+    time_courses_filtered = model.lat_tcs_filt
+    time_courses_env = np.zeros_like(time_courses_filtered)
+    kern = np.squeeze(model.envconv.filters.numpy()).T
+    for i_comp in range(kern.shape[0]):
+        conv = np.abs(np.convolve(time_courses_filtered[i_comp, :], kern[i_comp, :], mode="same"))
+        time_courses_env[i_comp, :] = conv
+    compression_weights = np.array([
+        pool.weights[0].numpy()
+        for pool in model.pool_list
+    ])
+
+    return model.temp_relevance_loss,\
+        np.array([eigencentrality(np.cov(w)) for w in compression_weights]),\
+        time_courses_env,\
+        compression_weights
