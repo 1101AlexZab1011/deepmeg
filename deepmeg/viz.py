@@ -16,14 +16,12 @@ def plot_patterns(
     patterns, info, order=None, axes=None, cmap='RdBu_r', sensors=True,
     colorbar=False, res=64,
     size=1, cbar_fmt='%3.1f', name_format='Latent\nSource %01d',
-    show=True, show_names=False, title=None,
+    show=True, show_names=False,
     outlines='head', contours=6,
     image_interp='linear'
 ) -> mpl.figure.Figure:
     if order is None:
         order = range(patterns.shape[1])
-    if title is None:
-        title = 'Computed patterns'
     info = copy.deepcopy(info)
     info.__setstate__(dict(_unlocked=True))
     info['sfreq'] = 1.
@@ -34,7 +32,7 @@ def plot_patterns(
         cmap=cmap, colorbar=colorbar, res=res,
         cbar_fmt=cbar_fmt, sensors=sensors, units=None, time_unit='s',
         time_format=name_format, size=size, show_names=show_names,
-        title=title, outlines=outlines,
+        outlines=outlines,
         contours=contours, image_interp=image_interp, show=show)
 
 
@@ -466,8 +464,7 @@ def plot_spatial_weights(
                 info,
                 sorting_callback.sorted_indices[iy],
                 ax21,
-                name_format='',
-                title=''
+                name_format=''
             )
             ax22_t = ax22.twinx()
             evoked = waveforms.evoked[sorting_callback.sorted_indices[iy]] if not filtered_induced else\
