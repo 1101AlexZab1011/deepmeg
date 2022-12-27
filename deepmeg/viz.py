@@ -582,6 +582,10 @@ def plot_spatial_weights(
                 ax24.plot(
                     moving_average(croppings.loss_estimate[sorting_callback.sorted_indices[iy]])
                 )
+                ax24.set_xticks(ranges)
+                ax24.set_xticklabels(times)
+                ax24.set_xlabel('Time (s)')
+                ax24.set_ylabel('Amplitude (z-score)')
 
             fig2.suptitle(f'Latent source {sorting_callback.sorted_indices[iy] + 1}')
             plt.show()
