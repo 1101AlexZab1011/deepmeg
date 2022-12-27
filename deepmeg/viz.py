@@ -587,6 +587,7 @@ def plot_spatial_weights(
                 ax24.set_xlabel('Time (s)')
                 ax24.set_ylabel('Amplitude (z-score)')
                 ax24.tick_params(axis='both', which='both', length=5, color='#00000050')
+                ax24.legend(['Envelope evoked', 'Temporal pattern', 'Loss-based estimate'], loc='upper right')
 
             fig2.suptitle(f'Latent source {sorting_callback.sorted_indices[iy] + 1}')
             plt.show()
