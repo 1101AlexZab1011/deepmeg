@@ -14,7 +14,7 @@ TemporalParameters = namedtuple('TemporalParameters', 'franges finputs foutputs 
 ComponentsOrder = namedtuple('ComponentsOrder', 'l2 compwise_loss weight output_corr weight_corr')
 Predictions = namedtuple('Predictions', 'y_p y_true')
 WaveForms = namedtuple('WaveForms', 'evoked evoked_filt induced induced_filt times tcs')
-CroppingParameters = namedtuple("CroppingParameters", "loss_estimate eig_estimate envelopes compression_weights")
+CompressionParameters = namedtuple("CroppingParameters", "loss_estimate eig_estimate envelopes compression_weights")
 
 
 def compute_patterns(model, data_path=None, *, output='patterns'):
@@ -224,7 +224,7 @@ def moving_average(data: np.ndarray, kernel_size: int = 20) -> np.ndarray:
     ])
 
 
-def compute_cropping(model) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def compute_compression_parameters(model) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute the cropping of the latent components time courses.
 
