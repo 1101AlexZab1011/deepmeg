@@ -14,7 +14,7 @@ TemporalParameters = namedtuple('TemporalParameters', 'franges finputs foutputs 
 ComponentsOrder = namedtuple('ComponentsOrder', 'l2 compwise_loss weight output_corr weight_corr')
 Predictions = namedtuple('Predictions', 'y_p y_true')
 WaveForms = namedtuple('WaveForms', 'evoked evoked_filt induced induced_filt times tcs')
-CompressionParameters = namedtuple('CompressionParameters', 'loss_estimate eig_estimate envelopes compression_weights')
+CompressionParameters = namedtuple('CompressionParameters', 'loss_estimate compression_weights')
 
 
 def compute_patterns(model, data_path=None, *, output='patterns'):
