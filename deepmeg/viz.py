@@ -571,8 +571,6 @@ def plot_spatial_weights(
                 ax24.spines['right'].set_alpha(.2)
                 ax24.spines['left'].set_alpha(.2)
                 ax24.spines['bottom'].set_alpha(.2)
-                envelope = compressions.envelopes[sorting_callback.sorted_indices[iy]]
-                envelope = np.reshape(envelope, (-1, len(waveforms.times)))
                 ax24.plot(
                     waveforms.evoked_filt[sorting_callback.sorted_indices[iy]]
                 )
