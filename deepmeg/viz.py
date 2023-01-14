@@ -584,7 +584,7 @@ def plot_spatial_weights(
                 ax24.set_xlabel('Time (s)')
                 ax24.set_ylabel('Amplitude (z-score)')
                 ax24.tick_params(axis='both', which='both', length=5, color='#00000050')
-                ax24.legend(
+                ax24.legend( 
                     [
                         'Filtered component evoked',
                         'Loss-based estimate'
