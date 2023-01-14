@@ -576,8 +576,11 @@ def plot_spatial_weights(
                     evo - evo.min()
                 )
                 loss_estimate = sp.stats.zscore(compressions.loss_estimate[sorting_callback.sorted_indices[iy]])
+                kernel_size = 20
+                loss_estimate = moving_average(loss_estimate - loss_estimate.min())
+                loss_estimate[kernel_size//2:-kernel_size//2] = loss_estimate[kernel_size//2:-kernel_size//2] - loss_estimate[kernel_size//2:-kernel_size//2].min()
                 ax24.plot(
-                    moving_average(loss_estimate - loss_estimate.min())
+                    loss_estimate
                 )
                 ax24.set_xticks(ranges)
                 ax24.set_xticklabels(times)
