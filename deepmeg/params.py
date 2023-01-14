@@ -244,18 +244,10 @@ def compute_compression_parameters(model) -> tuple[np.ndarray, np.ndarray, np.nd
     compression_weights : np.ndarray
         The compression weights.
     """
-    time_courses_filtered = model.lat_tcs_filt
-    # time_courses_env = np.zeros_like(time_courses_filtered)
-    # kern = np.squeeze(model.envconv.filters.numpy()).T
-    # for i_comp in range(kern.shape[0]):
-    #     conv = np.abs(np.convolve(time_courses_filtered[i_comp, :], kern[i_comp, :], mode="same"))
-    #     time_courses_env[i_comp, :] = conv
     compression_weights = np.array([
         pool.weights[0].numpy()
         for pool in model.pool_list
     ])
 
     return model.temp_relevance_loss,\
-        np.array([eigencentrality(np.cov(w)) for w in compression_weights]),\
-        time_courses_filtered,\
         compression_weights

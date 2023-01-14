@@ -574,11 +574,8 @@ def plot_spatial_weights(
                 envelope = compressions.envelopes[sorting_callback.sorted_indices[iy]]
                 envelope = np.reshape(envelope, (-1, len(waveforms.times)))
                 ax24.plot(
-                    moving_average(envelope.mean(0), 5)
+                    waveforms.evoked_filt[sorting_callback.sorted_indices[iy]]
                 )
-                # ax24.plot(
-                #     moving_average(compressions.eig_estimate[sorting_callback.sorted_indices[iy]])
-                # )
                 ax24.plot(
                     moving_average(compressions.loss_estimate[sorting_callback.sorted_indices[iy]])
                 )
@@ -590,7 +587,6 @@ def plot_spatial_weights(
                 ax24.legend(
                     [
                         'Filtered component evoked',
-                        # 'Temporal pattern',
                         'Loss-based estimate'
                     ],
                     loc='upper right'
