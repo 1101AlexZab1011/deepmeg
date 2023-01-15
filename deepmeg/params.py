@@ -111,11 +111,11 @@ def compute_temporal_parameters(model, *, fs=None):
     for i, flt in enumerate(out_filters.T):
         w, h = (lambda w, h: (w, np.abs(h)))(*sl.freqz(flt, 1, worN=fs))
         foutputs.append(np.real(finputs[i, :] * h * np.conj(h)))
-        fpatterns.append(np.abs(finputs[i, :] * h))
+        fpatterns.append(finputs[i, :] * np.abs(h))
 
         if franges is None:
             franges = w / np.pi * fs / 2
-        fresponces.append(h)
+        fresponces.append(np.abs(h))
 
     return franges, finputs, foutputs, fresponces, fpatterns
 

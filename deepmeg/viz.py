@@ -518,6 +518,7 @@ def plot_spatial_weights(
                     case 'pattern':
                         legend.append('Filtering pattern')
                         ax23.plot(
+                            temporal_parameters.franges,
                             sp.stats.zscore(
                                 temporal_parameters.fpatterns[sorting_callback.sorted_indices[iy]]
                             ),
