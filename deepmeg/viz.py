@@ -574,12 +574,12 @@ def plot_spatial_weights(
                 ax24.spines['bottom'].set_alpha(.2)
                 evo = sp.stats.zscore(waveforms.evoked_filt[sorting_callback.sorted_indices[iy]])
                 ax24.plot(
-                    evo - evo.min()
+                    evo# - evo.min()
                 )
                 loss_estimate = sp.stats.zscore(compressions.loss_estimate[sorting_callback.sorted_indices[iy]])
                 kernel_size = 20
                 loss_estimate = moving_average(loss_estimate - loss_estimate.min())
-                loss_estimate[kernel_size//2:-kernel_size//2] = loss_estimate[kernel_size//2:-kernel_size//2] - loss_estimate[kernel_size//2:-kernel_size//2].min()
+                # loss_estimate[kernel_size//2:-kernel_size//2] = loss_estimate[kernel_size//2:-kernel_size//2] - loss_estimate[kernel_size//2:-kernel_size//2].min()
                 ax24.plot(
                     loss_estimate
                 )
