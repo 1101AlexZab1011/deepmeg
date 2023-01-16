@@ -101,7 +101,7 @@ def compute_temporal_parameters(model, *, fs=None):
             fs = 1.
 
     out_filters = model.filters
-    _, psd = sl.welch(model.lat_tcs, fs=fs, nperseg=fs * 2)
+    _, psd = sl.welch(np.reshape(model.lat_tcs, (model.lat_tcs.shape[1], -1)), fs=fs, nperseg=fs * 2)
     finputs = psd[:, :-1]
     franges = None
     foutputs = list()
