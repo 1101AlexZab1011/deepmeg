@@ -141,12 +141,14 @@ def compute_morlet_cwt(
 
 
 def compute_waveforms(model: mf.models.BaseModel) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    time_courses = np.squeeze(model.lat_tcs.reshape(
-        [model.specs['n_latent'], -1, model.dataset.h_params['n_t']]
-    ))
-    time_courses_filtered = np.squeeze(model.lat_tcs_filt.reshape(
-        [model.specs['n_latent'], -1, model.dataset.h_params['n_t']]
-    ))
+    # time_courses = np.squeeze(model.lat_tcs.reshape(
+    #     [model.specs['n_latent'], -1, model.dataset.h_params['n_t']]
+    # ))
+    # time_courses_filtered = np.squeeze(model.lat_tcs_filt.reshape(
+    #     [model.specs['n_latent'], -1, model.dataset.h_params['n_t']]
+    # ))
+    time_courses = model.lat_tcs
+    time_courses_filtered = model.lat_tcs_filt
     times = (1 / float(model.dataset.h_params['fs'])) *\
         np.arange(model.dataset.h_params['n_t'])
     induced = list()
@@ -164,7 +166,8 @@ def compute_waveforms(model: mf.models.BaseModel) -> tuple[np.ndarray, np.ndarra
         induced.append(np.array(ls_induced).mean(axis=0))
         induced_filt.append(np.array(ls_induced_filt).mean(axis=0))
 
-    return np.array(induced), np.array(induced_filt), times, time_courses
+    return np.array(induced), np.array(induced_filt), times, time_courses, time_courses_filtered
+
 
 
 def save_parameters(content: Any, path: str, parameters_type: Optional[str] = '') -> NoReturn:
