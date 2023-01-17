@@ -303,8 +303,7 @@ def plot_spatial_weights(
     temp_params: Optional[list[str]] = ['input', 'response', 'output'],
     show: Optional[bool] = True,
     logscale: Optional[bool] = False,
-    shift_induced_times: Optional[bool | float] = False,
-    filtered_induced: Optional[bool] = False
+    shift_induced_times: Optional[bool | float] = False
 ) -> Union[mp.figure.Figure, NoReturn]:
 
     mp.use('Qt5Agg')
@@ -419,11 +418,6 @@ def plot_spatial_weights(
                 sorting_callback.sorted_indices[iy],
                 :flim,
                 :
-            ] if not filtered_induced else\
-                waveforms.induced_filt.copy()[
-                sorting_callback.sorted_indices[iy],
-                :flim,
-                :
             ]
             crop *= induced.shape[1] / 2
 
@@ -467,8 +461,7 @@ def plot_spatial_weights(
                 name_format=''
             )
             ax22_t = ax22.twinx()
-            evoked = waveforms.evoked[sorting_callback.sorted_indices[iy]] if not filtered_induced else\
-                waveforms.evoked_filt[sorting_callback.sorted_indices[iy]]
+            evoked = waveforms.evoked[sorting_callback.sorted_indices[iy]]
             ax22_t.plot(
                 sp.stats.zscore(evoked),
                 '#454545'
@@ -486,8 +479,7 @@ def plot_spatial_weights(
                 aspect=75,
                 fraction=.12
             )
-            ax22.set_aspect('auto')
-            ax22_t.set_aspect('auto')
+
             # ax22_t.set_ylim(top=1, bottom=-1)
             legend = list()
             for param in temp_params:
@@ -527,51 +519,7 @@ def plot_spatial_weights(
                     case _:
                         raise NotImplementedError(f'Temporal parameter {param} is not implemented')
 
-            ax22_t.set_ylabel('Amplitude', labelpad=12.5, rotation=270)
-            ax22_t.spines['top'].set_alpha(.2)
-            ax22_t.spines['right'].set_alpha(.2)
-            ax22_t.spines['left'].set_alpha(.2)
-            ax22_t.spines['bottom'].set_alpha(.2)
-            ax22_t.tick_params(axis='both', which='both', length=5, color='#00000050')
-            ax22.spines['top'].set_alpha(.2)
-            ax22.spines['right'].set_alpha(.2)
-            ax22.spines['left'].set_alpha(.2)
-            ax22.spines['bottom'].set_alpha(.2)
-            ax22.tick_params(axis='both', which='both', length=5, color='#00000050')
-            cb.outline.set_color('#00000020')
-            cb.ax.tick_params(axis='both', which='both', length=5, color='#00000050')
-            times = np.unique(np.round(waveforms.times, 1))
-            ranges = np.linspace(0, len(waveforms.times), len(times)).astype(int)
-
-            if shift is True:
-                times = np.round(times - times.mean(), 2)
-            elif isinstance(shift, (int, float)):
-                times = np.round(times - shift, 2)
-
-            ax22.set_xticks(ranges)
-            ax22.set_xticklabels(times)
-            ax22.set_xlabel('Time (s)')
-            ax22.set_ylabel('Frequency (Hz)')
-            ax23.legend(legend, loc='upper right')
-            ax23.spines['top'].set_alpha(.2)
-            ax23.spines['right'].set_alpha(.2)
-            ax23.spines['left'].set_alpha(.2)
-            ax23.spines['bottom'].set_alpha(.2)
-            ax23.tick_params(axis='both', which='both', length=5, color='#00000050')
-            ax23.set_xlabel('Frequency (Hz)')
-            ax23.set_ylabel('Amplitude (z-score)')
-            # ax23.set_ylim(top=1.2)
-            ax23.set_xlim([0, 70])
-            ax22_t.set_xlim([2 * crop, len(waveforms.times) - 2 * crop])
-
-            if logscale:
-                ax23.set_yscale('log')
-
             if compressions:
-                ax24.spines['top'].set_alpha(.2)
-                ax24.spines['right'].set_alpha(.2)
-                ax24.spines['left'].set_alpha(.2)
-                ax24.spines['bottom'].set_alpha(.2)
                 evo = sp.stats.zscore(waveforms.evoked_filt[sorting_callback.sorted_indices[iy]])
                 ax24.plot(
                     evo# - evo.min()
@@ -583,20 +531,124 @@ def plot_spatial_weights(
                 ax24.plot(
                     loss_estimate
                 )
-                ax24.set_xticks(ranges)
-                ax24.set_xticklabels(times)
-                ax24.set_xlabel('Time (s)')
-                ax24.set_ylabel('Amplitude (z-score)')
-                ax24.tick_params(axis='both', which='both', length=5, color='#00000050')
-                ax24.legend(
-                    [
-                        'Filtered component evoked',
-                        'Loss-based estimate'
-                    ],
-                    loc='upper right'
-                )
+
+            def init_canvas2(cb):
+                ax22.set_aspect('auto')
+                ax22_t.set_aspect('auto')
+                ax22_t.set_ylabel('Amplitude', labelpad=12.5, rotation=270)
+                ax22_t.spines['top'].set_alpha(.2)
+                ax22_t.spines['right'].set_alpha(.2)
+                ax22_t.spines['left'].set_alpha(.2)
+                ax22_t.spines['bottom'].set_alpha(.2)
+                ax22_t.tick_params(axis='both', which='both', length=5, color='#00000050')
+                ax22.spines['top'].set_alpha(.2)
+                ax22.spines['right'].set_alpha(.2)
+                ax22.spines['left'].set_alpha(.2)
+                ax22.spines['bottom'].set_alpha(.2)
+                ax22.tick_params(axis='both', which='both', length=5, color='#00000050')
+                cb.outline.set_color('#00000020')
+                cb.ax.tick_params(axis='both', which='both', length=5, color='#00000050')
+                times = np.unique(np.round(waveforms.times, 1))
+                ranges = np.linspace(0, len(waveforms.times), len(times)).astype(int)
+
+                if shift is True:
+                    times = np.round(times - times.mean(), 2)
+                elif isinstance(shift, (int, float)):
+                    times = np.round(times - shift, 2)
+
+                ax22.set_xticks(ranges)
+                ax22.set_xticklabels(times)
+                ax22.set_xlabel('Time (s)')
+                ax22.set_ylabel('Frequency (Hz)')
+                ax23.legend(legend, loc='upper right')
+                ax23.spines['top'].set_alpha(.2)
+                ax23.spines['right'].set_alpha(.2)
+                ax23.spines['left'].set_alpha(.2)
+                ax23.spines['bottom'].set_alpha(.2)
+                ax23.tick_params(axis='both', which='both', length=5, color='#00000050')
+                ax23.set_xlabel('Frequency (Hz)')
+                ax23.set_ylabel('Amplitude (z-score)')
+                # ax23.set_ylim(top=1.2)
+                ax23.set_xlim([0, 70])
+                ax22_t.set_xlim([2 * crop, len(waveforms.times) - 2 * crop])
+
+                if logscale:
+                    ax23.set_yscale('log')
+
+                if compressions:
+                    ax24.spines['top'].set_alpha(.2)
+                    ax24.spines['right'].set_alpha(.2)
+                    ax24.spines['left'].set_alpha(.2)
+                    ax24.spines['bottom'].set_alpha(.2)
+                    ax24.set_xticks(ranges)
+                    ax24.set_xticklabels(times)
+                    ax24.set_xlabel('Time (s)')
+                    ax24.set_ylabel('Amplitude (z-score)')
+                    ax24.tick_params(axis='both', which='both', length=5, color='#00000050')
+                    ax24.legend(
+                        [
+                            'Filtered component evoked',
+                            'Loss-based estimate'
+                        ],
+                        loc='upper right'
+                    )
+
+            init_canvas2(cb)
 
             fig2.suptitle(f'Latent source {sorting_callback.sorted_indices[iy] + 1}')
+
+            class FilterButtonCallback:
+                def __init__(self, button, filtered_induced, cb):
+                    self.button = button
+                    self.filtered = filtered_induced
+                    self.cb = cb
+                def __call__(self, event):
+                    self.filtered = not self.filtered
+                    text = 'Filter' if not self.filtered else 'Redo'
+                    self.button.label.set_text(text)
+                    evoked = waveforms.evoked[sorting_callback.sorted_indices[iy]] if not self.filtered else\
+                        waveforms.evoked_filt[sorting_callback.sorted_indices[iy]]
+                    induced = waveforms.induced.copy()[
+                        sorting_callback.sorted_indices[iy],
+                        :flim,
+                        :
+                    ] if not self.filtered else\
+                        waveforms.induced_filt.copy()[
+                        sorting_callback.sorted_indices[iy],
+                        :flim,
+                        :
+                    ]
+                    for i, ind_course in enumerate(induced):
+                        induced[i] /= ind_course.mean()
+                    ax22_t.axes.clear()
+                    ax22_t.plot(
+                        sp.stats.zscore(evoked),
+                        '#454545'
+                    )
+                    ax22.axes.clear()
+                    pos = ax22.imshow(
+                        induced,
+                        cmap='RdBu_r',
+                        origin='lower'
+                    )
+                    self.cb.remove()
+                    self.cb = fig2.colorbar(
+                        pos,
+                        ax=ax22,
+                        pad=0.12,
+                        orientation='horizontal',
+                        aspect=75,
+                        fraction=.12
+                    )
+                    init_canvas2(self.cb)
+                    fig2.canvas.draw()
+
+            axfilt = fig2.add_axes([0.86, 0.925, 0.04, 0.025])#posx, posy, width, height
+            filt_button = Button(axfilt, 'Filter')
+            axfilt._button = filt_button
+            filt_callback = FilterButtonCallback(filt_button, False, cb)
+            filt_button.on_clicked(filt_callback)
+
             plt.show()
 
     data = spatial_parameters.patterns.copy()
