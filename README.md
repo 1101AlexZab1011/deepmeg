@@ -20,7 +20,8 @@ To install DeepMEG, simply run:
 
 Here is a simple example of how to use DeepMEG for EEG/MEG signals decoding:
 
-<pre><div class="bg-black mb-4 rounded-md"><div class="p-4 overflow-y-auto"><code class="!whitespace-pre hljs language-python">import deepmeg
+```python
+import deepmeg
 import mne
 import torch
 import torchmetrics
@@ -74,12 +75,11 @@ for measure, value in result.items():
 interpreter = deepmeg.interpreters.LFCNNInterpreter(model, test, epochs.info)
 fig = interpreter.plot_branch(0, ['input', 'response', 'pattern'])
 plt.show()
-
-</code></div></div></pre>
+```
 
 ## Documentation
 
-At the moment, the documentation for DeepMEG is only available in the source codeAt the moment, the documentation is only available in the source code
+At the moment, the documentation for DeepMEG is only available in the source code
 
 ## License
 
