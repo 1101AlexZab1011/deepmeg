@@ -20,8 +20,6 @@ To install DeepMEG, simply run:
 
 Here is a simple example of how to use DeepMEG for EEG/MEG signals decoding:
 
-<pre><div class="bg-black mb-4 rounded-md"><div class="flex items-center relative text-gray-200 bg-gray-800 px-4 py-2 text-xs font-sans"><span class="">python</span></div></div></pre>
-
 <pre><div class="bg-black mb-4 rounded-md"><div class="p-4 overflow-y-auto"><code class="!whitespace-pre hljs language-python">import deepmeg
 import mne
 import torch
