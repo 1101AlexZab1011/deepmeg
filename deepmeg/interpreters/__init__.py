@@ -1,12 +1,17 @@
+import sys
 import torch
 from torch.utils.data import DataLoader, Dataset
 import mne
 import scipy as sp
 import numpy as np
 from copy import deepcopy
-from ..models.interpretable import LFCNN
+from ..models.interpretable import LFCNN, TimeCompNet
 import matplotlib
 import matplotlib.pyplot as plt
+from tqdm import tqdm
+from deepmeg.utils.printout import nostdout
+from deepmeg.utils.viz import generate_cmap
+
 
 
 class LFCNNInterpreter:
@@ -364,6 +369,236 @@ class LFCNNInterpreter:
                 x,
                 interp_cubic(data),
                 alpha=.75,
+                linestyle='--',
+                color='tab:red'
+            )
+        if 'pattern' in spec_plot_elems:
+            spec_legend.append('pattern')
+            data = sp.stats.zscore(np.real(self.filter_patterns[order[branch_num]].mean(0)))
+            data -= data.min()
+            ax3.plot(
+                x,
+                sp.stats.zscore(
+                    interp_cubic(data)
+                ),
+                color='tab:blue',
+                alpha=.75,
+                linestyle=':'
+            )
+        ax3.legend(spec_legend, loc='upper right')
+        ax3.set_ylabel('Amplitude, zscore')
+        ax3.set_xlabel('Frequency, Hz')
+        ax3.set_xlim(0, 100)
+
+        fake_evo.plot_topomap(
+            times=0,
+            axes=ax1,
+            colorbar=False,
+            scalings=1,
+            time_format="",
+            outlines='head',
+            cmap=generate_cmap(
+                '#1f77b4',
+                '#ffffff',
+                '#d62728'
+            )
+        )
+        if title:
+            fig.suptitle(f'Branch {branch_num}')
+
+        fig.tight_layout()
+
+        return fig
+
+
+
+class TimeCompNetInterpreter(LFCNNInterpreter):
+    """
+        Initialize TimeCompNetInterpreter object.
+
+        Parameters:
+            model (TimeCompNet): Trained LFCNN model.
+            dataset (Dataset): Data used to train the LFCNN model.
+            info (mne.Info): Information about recordings, typically contained in the "info" property of the corresponding instance (E.g. epochs.info).
+        """
+    def __init__(self, model: TimeCompNet, dataset: Dataset, info: mne.Info):
+        super().__init__(model, dataset, info)
+        self._tempwise_loss = None
+
+    @torch.no_grad()
+    def compute_tempwise_loss(self):
+        """
+        This method computes the tempwise loss within each branch of TimeCompNet (branch consits of two connected spatial and temporal filters and ended with tempral compression layer).
+        It computes loss of each timepoint in time compression matrix of each branch by computing loss without all branches except of n-th one and without i-th timepoint.
+        It is one of the easiest ways to estimate relevance of each timepoint within each branch.
+
+        Returns:
+            numpy.ndarray: A 2-dimensional numpy array of shape (n_latent, n_timepoints) where n_latent is the number of branches in the model and n_timepoints is time dimensionality.
+        """
+
+        loader = DataLoader(self.dataset, len(self.dataset))
+        n_latent = self.model.unmixing_layer.weight.shape[0]
+        X, y = next(iter(loader))
+        temp_conv_output = self.model.temp_conv(self.model.unmixing_layer(X))
+        n_times = temp_conv_output.shape[-1]
+        branchwise = list()
+        unmixing_weights_original = deepcopy(self.model.unmixing_layer.weight)
+        unmixing_bias_original = deepcopy(self.model.unmixing_layer.bias)
+        temp_conv_bias_original = deepcopy(self.model.temp_conv.bias)
+
+        for i in tqdm(range(n_latent), initial=1, total=n_latent, file=sys.stdout):
+            with nostdout():
+                if i == 0:
+                    self.model.unmixing_layer.weight[1:, :, :] = 0
+                    self.model.unmixing_layer.bias[1:] = 0
+                    self.model.temp_conv.bias[1:] = 0
+                elif i == n_latent - 1:
+                    self.model.unmixing_layer.weight[:-1, :, :] = 0
+                    self.model.unmixing_layer.bias[:-1] = 0
+                    self.model.temp_conv.bias[:-1] = 0
+                else:
+                    self.model.unmixing_layer.weight[:i, :, :] = 0
+                    self.model.unmixing_layer.weight[i+1:, :, :] = 0
+                    self.model.unmixing_layer.bias[:i] = 0
+                    self.model.unmixing_layer.bias[i+1:] = 0
+                    self.model.temp_conv.bias[:i] = 0
+                    self.model.temp_conv.bias[i+1:] = 0
+
+                timesel = self.model.timesel_list[i]
+                tempwise = list()
+
+                for j in range(n_times):
+                    timesel_timepoint_original = deepcopy(timesel[0].weight[:, j])
+                    timesel[0].weight[:, j] = 0
+                    tempwise.append(self.model.evaluate(loader)['loss'])
+                    timesel[0].weight[:, j] = timesel_timepoint_original
+
+                branchwise.append(tempwise)
+                self.model.unmixing_layer.weight[:, :, :] = unmixing_weights_original
+                self.model.unmixing_layer.bias[:] = unmixing_bias_original
+                self.model.temp_conv.bias[:] = temp_conv_bias_original
+
+        return np.array(branchwise)
+
+    def __validate_tempwise_estimate(self):
+        """
+        Validates the tempwise loss by computing it if it has not been computed previously.
+
+        The `_tempwise_loss` attribute is set to the result of the `compute_tempwise_loss` method.
+
+        """
+        if self._tempwise_loss is None:
+            print('Estimating temporal compression weights, it will take some time')
+            self._tempwise_loss = self.compute_tempwise_loss()
+
+    @property
+    def tempwise_loss(self):
+        """
+        Get the tempwise loss.
+
+        Returns:
+            List[List[float]]: The tempwise loss.
+        """
+        self.__validate_tempwise_estimate()
+        return self._tempwise_loss
+
+    def plot_branch(
+        self,
+        branch_num: int,
+        spec_plot_elems: list[str] = ['input', 'output', 'response'],
+        title: str = None
+    ) -> matplotlib.figure.Figure:
+        """
+        Plot the branchwise information for a specific branch of the model.
+
+        Parameters:
+        branch_num (int): the branch number to plot (order of branches is determined by `branchwise_loss`).
+        spec_plot_elems (List[str]): a list of plot elements to include in the spectrum plot.
+        title (str): optional title for the plot.
+
+        Returns:
+        matplotlib.figure.Figure: the plot.
+
+        """
+        info = deepcopy(self.info)
+        info.__setstate__(dict(_unlocked=True))
+        info['sfreq'] = 1.
+        order = np.argsort(self.branchwise_loss)[::-1]
+        patterns_sorted = self.spatial_patterns[:, order]
+        latent_sources_sorted = self.latent_sources[:, order, :]
+        latent_sources_filt_sorted = self.latent_sources_filtered[:, order, :]
+        tempwise_losses_sorted = self.tempwise_loss[order]
+        fake_evo = mne.evoked.EvokedArray(np.expand_dims(patterns_sorted[:, branch_num], 1), info, tmin=0)
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(15, 5))
+        times = np.arange(0, latent_sources_sorted.shape[-1]/self.info['sfreq'], 1/self.info['sfreq'])
+        ax2.plot(
+            times,
+            sp.stats.zscore(latent_sources_sorted.mean(0)[branch_num]),
+            linewidth=2, alpha=.25
+        )
+        ax2.plot(
+            times,
+            sp.stats.zscore(latent_sources_filt_sorted.mean(0)[branch_num]),
+            color='tab:blue',
+            linewidth=1
+        )
+        kernel = 6
+        branch_tempwise_losses = np.concatenate([
+            [np.nan for _ in range(kernel//2)],
+            np.convolve(sp.stats.zscore(tempwise_losses_sorted[branch_num]), np.ones(kernel)/kernel, mode='same')[kernel//2:][:-kernel//2],
+            [np.nan for _ in range(kernel//2)]
+        ])
+        ax2.plot(
+            times,
+            branch_tempwise_losses,
+            color='tab:red',
+            linewidth=1.25,
+            linestyle='--',
+            alpha=.75
+        )
+        ax2.set_ylabel('Amplitude, zscore')
+        ax2.set_xlabel('Time, s')
+        ax2.legend(['spatially filtered', 'temporally filtered', 'loss-based estimate'], loc='upper right')
+
+        spec_legend = list()
+        x = np.arange(0, self.frequency_range[-1], .1)
+
+        interp_cubic = lambda y: sp.interpolate.interp1d(self.frequency_range, y, 'cubic')(x)
+
+        plt.xlim(0, 100)
+        if 'input' in spec_plot_elems:
+            spec_legend.append('input')
+            data = sp.stats.zscore(np.real(self.filter_inputs[order[branch_num]].mean(0)))
+            data -= data.min()
+            ax3.plot(
+                x,
+                sp.stats.zscore(
+                    interp_cubic(data)
+                ),
+                color='tab:blue',
+                alpha=.25
+            )
+        if 'output' in spec_plot_elems:
+            spec_legend.append('output')
+            data = sp.stats.zscore(np.real(self.filter_outputs[order[branch_num]].mean(0)))
+            data -= data.min()
+            ax3.plot(
+                x,
+                sp.stats.zscore(
+                    interp_cubic(data)
+                ),
+                color='tab:blue',
+                linewidth=.75
+            )
+        if 'response' in spec_plot_elems:
+            spec_legend.append('response')
+            data = sp.stats.zscore(np.real(self.filter_responses[order[branch_num]]))
+            data -= data.min()
+            ax3.plot(
+                x,
+                interp_cubic(data),
+                color='tab:red',
+                alpha=.75,
                 linestyle='--'
             )
         if 'pattern' in spec_plot_elems:
@@ -391,7 +626,11 @@ class LFCNNInterpreter:
             scalings=1,
             time_format="",
             outlines='head',
-            cmap='Blues'
+            cmap=generate_cmap(
+                '#1f77b4',
+                '#ffffff',
+                '#d62728'
+            )
         )
         if title:
             fig.suptitle(f'Branch {branch_num}')
