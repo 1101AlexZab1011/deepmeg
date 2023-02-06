@@ -5,7 +5,7 @@ import mne
 import scipy as sp
 import numpy as np
 from copy import deepcopy
-from ..models.interpretable import LFCNN, TimeCompNet, SPIRIT
+from ..models.interpretable import LFCNN, HilbertNet, TimeCompNet, SPIRIT
 import matplotlib
 import matplotlib.pyplot as plt
 from tqdm import tqdm
@@ -419,14 +419,173 @@ class LFCNNInterpreter:
         return fig
 
 
+class HilbertNetInterpreter(LFCNNInterpreter):
+    """
+        Initialize HilbertNetInterpreter object.
+
+        Parameters:
+            model (HilbertNet): Trained HilbertNet model.
+            dataset (Dataset): Data used to train the LFCNN model.
+            info (mne.Info): Information about recordings, typically contained in the "info" property of the corresponding instance (E.g. epochs.info).
+
+        """
+    def __init__(self, model: HilbertNet, dataset: Dataset, info: mne.Info):
+        super().__init__(model, dataset, info)
+        self._envelopes = None
+
+    @property
+    @torch.no_grad()
+    def envelopes(self):
+        """
+        Get the latent sources envelopes.
+
+        Returns:
+            torch.Tensor: The latent sources envelopes with shape (n_epochs, n_latent, n_times).
+        """
+        if self._envelopes is None:
+            x = self.model.temp_conv_activation(torch.Tensor(self.latent_sources_filtered))
+            x = self.model.temp_conv_activation(x)
+            self._envelopes = self.model.env_conv(x).numpy()
+        return self._envelopes
+
+    def plot_branch(
+        self,
+        branch_num: int,
+        spec_plot_elems: list[str] = ['input', 'output', 'response'],
+        title: str = None
+    ) -> matplotlib.figure.Figure:
+        """
+        Plot the branchwise information for a specific branch of the model.
+
+        Parameters:
+        branch_num (int): the branch number to plot (order of branches is determined by `branchwise_loss`).
+        spec_plot_elems (List[str]): a list of plot elements to include in the spectrum plot.
+        title (str): optional title for the plot.
+
+        Returns:
+        matplotlib.figure.Figure: the plot.
+
+        """
+        info = deepcopy(self.info)
+        info.__setstate__(dict(_unlocked=True))
+        info['sfreq'] = 1.
+        order = np.argsort(self.branchwise_loss)
+        patterns_sorted = self.spatial_patterns[:, order]
+        latent_sources_sorted = self.latent_sources[:, order, :]
+        latent_sources_filt_sorted = self.latent_sources_filtered[:, order, :]
+        envelopes_sorted = self.envelopes[:, order, :]
+        fake_evo = mne.evoked.EvokedArray(np.expand_dims(patterns_sorted[:, branch_num], 1), info, tmin=0)
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(15, 5))
+        times = np.linspace(0, latent_sources_sorted.shape[-1]/self.info['sfreq'], latent_sources_filt_sorted.shape[-1])
+        ax2.plot(
+            times,
+            sp.stats.zscore(latent_sources_sorted.mean(0)[branch_num]),
+            linewidth=2, alpha=0.25
+        )
+        ax2.plot(
+            times,
+            sp.stats.zscore(latent_sources_filt_sorted.mean(0)[branch_num]),
+            color='tab:blue',
+            linewidth=1.5,
+            alpha=.5
+        )
+        ax2.plot(
+            times,
+            sp.stats.zscore(envelopes_sorted.mean(0)[branch_num]),
+            color='tab:blue',
+            linewidth=1
+        )
+        ax2.set_ylabel('Amplitude, zscore')
+        ax2.set_xlabel('Time, s')
+        ax2.legend(['spatially filtered', 'temporally filtered', 'envelope'], loc='upper right')
+
+        spec_legend = list()
+        x = np.arange(0, self.frequency_range[-1], .1)
+
+        interp_cubic = lambda y: sp.interpolate.interp1d(self.frequency_range, y, 'cubic')(x)
+
+        plt.xlim(0, 100)
+        if 'input' in spec_plot_elems:
+            spec_legend.append('input')
+            data = sp.stats.zscore(np.real(self.filter_inputs[order[branch_num]].mean(0)))
+            data -= data.min()
+            ax3.plot(
+                x,
+                sp.stats.zscore(
+                    interp_cubic(data)
+                ),
+                color='tab:blue',
+                alpha=.25
+            )
+        if 'output' in spec_plot_elems:
+            spec_legend.append('output')
+            data = sp.stats.zscore(np.real(self.filter_outputs[order[branch_num]].mean(0)))
+            data -= data.min()
+            ax3.plot(
+                x,
+                sp.stats.zscore(
+                    interp_cubic(data)
+                ),
+                color='tab:blue',
+                linewidth=.75
+            )
+        if 'response' in spec_plot_elems:
+            spec_legend.append('response')
+            data = sp.stats.zscore(np.real(self.filter_responses[order[branch_num]]))
+            data -= data.min()
+            ax3.plot(
+                x,
+                interp_cubic(data),
+                alpha=.75,
+                linestyle='--',
+                color='tab:red'
+            )
+        if 'pattern' in spec_plot_elems:
+            spec_legend.append('pattern')
+            data = sp.stats.zscore(np.real(self.filter_patterns[order[branch_num]].mean(0)))
+            data -= data.min()
+            ax3.plot(
+                x,
+                sp.stats.zscore(
+                    interp_cubic(data)
+                ),
+                color='tab:blue',
+                alpha=.75,
+                linestyle=':'
+            )
+        ax3.legend(spec_legend, loc='upper right')
+        ax3.set_ylabel('Amplitude, zscore')
+        ax3.set_xlabel('Frequency, Hz')
+        ax3.set_xlim(0, 100)
+
+        fake_evo.plot_topomap(
+            times=0,
+            axes=ax1,
+            colorbar=False,
+            scalings=1,
+            time_format="",
+            outlines='head',
+            cmap=generate_cmap(
+                '#1f77b4',
+                '#ffffff',
+                '#d62728'
+            )
+        )
+        if title:
+            fig.suptitle(f'Branch {branch_num}')
+
+        fig.tight_layout()
+
+        return fig
+
 
 class TimeCompNetInterpreter(LFCNNInterpreter):
     """
         Initialize TimeCompNetInterpreter object.
 
         Parameters:
-            model (TimeCompNet): Trained LFCNN model.
-            dataset (Dataset): Data used to train the LFCNN model.
+            model (TimeCompNet): Trained TimeCompNet model.
+            dataset (Dataset): Data used to test the TimeCompNet model.
             info (mne.Info): Information about recordings, typically contained in the "info" property of the corresponding instance (E.g. epochs.info).
         """
     def __init__(self, model: TimeCompNet, dataset: Dataset, info: mne.Info):
@@ -650,13 +809,13 @@ class TimeCompNetInterpreter(LFCNNInterpreter):
 
 class SPIRITInterpreter(LFCNNInterpreter):
     """
-        Initialize TimeSelNetInterpreter object.
+        Initialize SPIRITInterpreter object.
 
         Parameters:
-            model (TimeSelNet): Trained LFCNN model.
-            dataset (Dataset): Data used to train the LFCNN model.
+            model (SPIRIT): Trained SPIRIT model.
+            dataset (Dataset): Data used to test the SPIRIT model.
             info (mne.Info): Information about recordings, typically contained in the "info" property of the corresponding instance (E.g. epochs.info).
-        """
+    """
     def __init__(self, model: SPIRIT, dataset: Dataset, info: mne.Info):
         super().__init__(model, dataset, info)
         self._temporal_patterns = None
