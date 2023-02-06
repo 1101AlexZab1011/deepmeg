@@ -130,5 +130,8 @@ dmypy.json
 
 trash/
 data/
-dataset/
+datasets/
 models/
+simulated/
+simulated_n/
+dataset/

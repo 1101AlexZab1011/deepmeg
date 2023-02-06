@@ -40,3 +40,21 @@ def one_hot_decoder(y: np.array) -> np.array:
         y_decoded.append(np.where(val == val.max())[0][0])
 
     return np.array(y_decoded)
+
+
+def interpolate_sequence(original_sequence: np.ndarray, new_length: int) -> np.ndarray:
+    """
+    Interpolate a sequence of length 'n' into a sequence of length 'm' (m > n)
+
+    Args:
+        original_sequence: A numpy array of shape (n, ) representing the original sequence
+        new_length: An integer, the desired length of the interpolated sequence
+
+    Returns:
+        A numpy array of shape (m, ) representing the interpolated sequence
+    """
+    x = np.arange(original_sequence.shape[0])
+    f = original_sequence
+    x_new = np.linspace(0, x.max(), new_length)
+    f_new = np.interp(x_new, x, f)
+    return f_new
