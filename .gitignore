@@ -131,7 +131,7 @@ dmypy.json
 trash/
 /data/
 datasets/
-models/
+/models/
 simulated/
 simulated_n/
 simulated_noisy/
