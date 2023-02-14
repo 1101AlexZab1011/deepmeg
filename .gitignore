@@ -134,4 +134,5 @@ datasets/
 models/
 simulated/
 simulated_n/
+simulated_noisy/
 dataset/
