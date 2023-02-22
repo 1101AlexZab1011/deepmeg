@@ -13,7 +13,6 @@ from deepmeg.utils.printout import nostdout
 from deepmeg.utils.colors import generate_cmap
 
 
-
 class LFCNNInterpreter:
     """
         Initialize LFCNNInterpreter object.

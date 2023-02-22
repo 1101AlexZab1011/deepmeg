@@ -93,8 +93,9 @@ class EpochsDataset(Dataset):
         Raises:
             OSError: if the path to save the dataset object leads to the same directory in which its contents are saved
         """
-        if os.path.dirname(path) == os.path.dirname(self.savepath):
+        if os.path.dirname(path) == self.savepath.split('/')[-1]:
             raise OSError('Dataset can not be saved in the same directory with its contents')
+
         torch.save(self, path)
 
     @staticmethod
