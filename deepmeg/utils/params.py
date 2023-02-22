@@ -182,7 +182,7 @@ class NetworkParameters(ABC):
         save(self, path)
 
     @staticmethod
-    def read_pkl(path: str | os.PathLike) -> 'NetworkParameters':
+    def read(path: str | os.PathLike) -> 'NetworkParameters':
         """
         Read a pickled NetworkParameters object from a file.
 
