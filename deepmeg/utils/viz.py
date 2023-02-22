@@ -230,6 +230,7 @@ class FilterButtonCallback:
         crop: int,
         legend: list[str],
         filtered: bool = False,
+        f_scale: tuple[float, float] = None,
     ):
         self.button = button
         self.plotter = plotter
@@ -243,6 +244,7 @@ class FilterButtonCallback:
         self.crop = crop
         self.legend = legend
         self.filtered = filtered,
+        self.f_scale = f_scale
 
     def __call__(self, event: mpl.backend_bases.MouseEvent):
         """
@@ -270,14 +272,25 @@ class FilterButtonCallback:
         induced = rowwise_zscore(induced)[:, self.crop:-self.crop]
         self.axes[1].axes.clear()
         self.axes[2].axes.clear()
-        pos = self.axes[1].imshow(
-            induced,
-            origin='lower',
-            cmap=self.plotter.cmap,
-            interpolation='bicubic',
-            aspect='auto',
-            interpolation_stage='rgba',
-        )
+        if self.f_scale is not None:
+            pos = self.axes[1].imshow(
+                induced,
+                origin='lower',
+                cmap=self.plotter.cmap,
+                interpolation='bicubic',
+                aspect='auto',
+                interpolation_stage='rgba',
+                vmin=self.f_scale[0], vmax=self.f_scale[1]
+            )
+        else:
+            pos = self.axes[1].imshow(
+                induced,
+                origin='lower',
+                cmap=self.plotter.cmap,
+                interpolation='bicubic',
+                aspect='auto',
+                interpolation_stage='rgba'
+            )
         self.axes[1].contour(
             induced,
             [
@@ -590,7 +603,11 @@ class InterpretationPlotter:
                 interpolation='bicubic',
                 aspect='auto',
                 interpolation_stage='rgba',
+                vmin=vmin,
+                vmax=vmax
             )
+            vmin = np.percentile(induced_norm, 5)
+            vmax = np.percentile(induced_norm, 95)
 
             ax22.contour(
                 induced_norm,
@@ -619,6 +636,7 @@ class InterpretationPlotter:
             spec_range = np.arange(0, self.params.spectral.range[-1], .1)
             interp_cubic = lambda y: sp.interpolate.interp1d(self.params.spectral.range, y, 'cubic')(spec_range)
             spec_legend = list()
+
             if 'input' in spec_plot_elems:
                 spec_legend.append('input')
                 data = sp.stats.zscore(np.real(self.params.spectral.inputs[sorting_callback.sorted_indices[iy]].mean(0)))
@@ -631,6 +649,7 @@ class InterpretationPlotter:
                     color='tab:blue',
                     alpha=.25
                 )
+
             if 'output' in spec_plot_elems:
                 spec_legend.append('output')
                 data = sp.stats.zscore(np.real(self.params.spectral.outputs[sorting_callback.sorted_indices[iy]].mean(0)))
@@ -719,7 +738,8 @@ class InterpretationPlotter:
                 timeshift,
                 f_max,
                 crop,
-                spec_legend
+                spec_legend,
+                f_scale=(vmin, vmax),
             )
             filt_button.on_clicked(filt_callback)
 
