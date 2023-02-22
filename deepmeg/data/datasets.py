@@ -97,7 +97,12 @@ class EpochsDataset(Dataset):
             raise OSError('Dataset can not be saved in the same directory with its contents')
         torch.save(self, path)
 
+    @staticmethod
+    def load(path: str | os.PathLike) -> 'EpochsDataset':
+        """Reads epochs dataset in '.pt' format"""
+        return torch.load(path)
 
-def read_epochs_dataset(path: str | os.PathLike):
+
+def read_epochs_dataset(path: str | os.PathLike) -> EpochsDataset:
     """Reads epochs dataset in '.pt' format"""
     return torch.load(path)

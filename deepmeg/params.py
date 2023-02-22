@@ -1,138 +1,90 @@
 from collections import namedtuple
-import mneflow
-import mneflow as mf
-import numpy as np
-import tensorflow as tf
-import scipy as sp
-import scipy.signal as sl
 import pickle
-from typing import Optional, NoReturn, Any
+from abc import ABC, abstractmethod
+from typing import Any
+import os
+import numpy as np
+from ..deepmeg.interpreters import LFCNNInterpreter
+import scipy.signal as sl
 
 
 SpatialParameters = namedtuple('SpatialParameters', 'patterns filters')
-TemporalParameters = namedtuple('TemporalParameters', 'franges finputs foutputs fresponces fpatterns')
-ComponentsOrder = namedtuple('ComponentsOrder', 'l2 compwise_loss weight output_corr weight_corr')
+SpectralParameters = namedtuple('SpectralParameters', 'range inputs outputs responses patterns')
+TemporalParameters = namedtuple('TemporalParameters', 'times time_courses time_courses_filtered induceds induceds_filtered patterns', defaults=[None])
 Predictions = namedtuple('Predictions', 'y_p y_true')
-WaveForms = namedtuple('WaveForms', 'evoked evoked_filt induced induced_filt times tcs')
-CompressionParameters = namedtuple('CompressionParameters', 'loss_estimate compression_weights')
 
 
-def compute_patterns(model, data_path=None, *, output='patterns'):
+def save(content: Any, path: str | os.PathLike):
+    """
+    Save an object using pickle serialization.
 
-    if not data_path:
-        print("Computing patterns: No path specified, using validation dataset (Default)")
-        ds = model.dataset.val
-    elif isinstance(data_path, str) or isinstance(data_path, (list, tuple)):
-        ds = model.dataset._build_dataset(
-            data_path,
-            split=False,
-            test_batch=None,
-            repeat=True
+    Args:
+    content (Any): the object to be serialized and saved.
+    path (str | os.PathLike): the path and filename where the serialized object will be saved.
+    The file extension must be '.pkl'.
+
+    Raises:
+    OSError: if the file extension of path is not '.pkl'.
+
+    Returns:
+    None
+    """
+
+    if path[-4:] != '.pkl':
+        raise OSError(f'Pickle file must have extension ".pkl", but it has "{path[-4:]}"')
+
+    pickle.dump(content, open(path, 'wb'))
+
+
+def read_pkl(path: str | os.PathLike) -> Any:
+    """
+    Read a pickled object from a file.
+
+    Args:
+    path (str or os.PathLike): Path to the pickled file to be read.
+
+    Returns:
+    Any: The content of the pickled file.
+
+    Raises:
+    FileNotFoundError: If the file specified by the path does not exist.
+    OSError: If the file specified by the path is not a valid pickle file.
+    """
+    with open(
+        path,
+        'rb'
+    ) as file:
+        content = pickle.load(
+            file
         )
-    elif isinstance(data_path, mneflow.data.Dataset):
-        if hasattr(data_path, 'test'):
-            ds = data_path.test
-        else:
-            ds = data_path.val
-    elif isinstance(data_path, tf.data.Dataset):
-        ds = data_path
-    else:
-        raise AttributeError('Specify dataset or data path.')
-
-    X, y = [row for row in ds.take(1)][0]
-
-    model.out_w_flat = model.fin_fc.w.numpy()
-    model.out_weights = np.reshape(
-        model.out_w_flat,
-        [-1, model.dmx.size, model.out_dim]
-    )
-    model.out_biases = model.fin_fc.b.numpy()
-    model.feature_relevances = model.get_component_relevances(X, y)
-
-    # compute temporal convolution layer outputs for vis_dics
-    tc_out = model.pool(model.tconv(model.dmx(X)).numpy())
-
-    # compute data covariance
-    X = X - tf.reduce_mean(X, axis=-2, keepdims=True)
-    X = tf.transpose(X, [3, 0, 1, 2])
-    X = tf.reshape(X, [X.shape[0], -1])
-    model.dcov = tf.matmul(X, tf.transpose(X))
-
-    # get spatial extraction fiter weights
-    demx = model.dmx.w.numpy()
-    model.lat_tcs = np.dot(demx.T, X)
-
-    kern = np.squeeze(model.tconv.filters.numpy()).T
-
-    X = X.numpy().T
-    if 'patterns' in output:
-        if 'old' in output:
-            model.patterns = np.dot(model.dcov, demx)
-        else:
-            patterns = []
-            X_filt = np.zeros_like(X)
-            for i_comp in range(kern.shape[0]):
-                for i_ch in range(X.shape[1]):
-                    x = X[:, i_ch]
-                    X_filt[:, i_ch] = np.convolve(x, kern[i_comp, :], mode="same")
-                patterns.append(np.cov(X_filt.T) @ demx[:, i_comp])
-            model.patterns = np.array(patterns).T
-    else:
-        model.patterns = demx
-
-    model.lat_tcs_filt = np.dot(demx.T, X_filt)
-
-    del X
-
-    #  Temporal conv stuff
-    model.filters = kern.T
-    model.tc_out = np.squeeze(tc_out)
-    model.corr_to_output = model.get_output_correlations(y)
-
-
-def compute_temporal_parameters(model, *, fs=None):
-
-    if fs is None:
-
-        if model.dataset.h_params['fs']:
-            fs = model.dataset.h_params['fs']
-        else:
-            print('Sampling frequency not specified, setting to 1.')
-            fs = 1.
-
-    out_filters = model.filters
-    _, psd = sl.welch(np.reshape(model.lat_tcs, (model.lat_tcs.shape[1], -1)), fs=fs, nperseg=fs * 2)
-    finputs = psd[:, :-1]
-    franges = None
-    foutputs = list()
-    fresponces = list()
-    fpatterns = list()
-
-    for i, flt in enumerate(out_filters.T):
-        w, h = (lambda w, h: (w, np.abs(h)))(*sl.freqz(flt, 1, worN=fs))
-        foutputs.append(np.real(finputs[i, :] * h * np.conj(h)))
-        fpatterns.append(finputs[i, :] * np.abs(h))
-
-        if franges is None:
-            franges = w / np.pi * fs / 2
-        fresponces.append(np.abs(h))
-
-    return franges, finputs, foutputs, fresponces, fpatterns
-
-
-def get_order(order: np.array, *args):
-    return order.ravel()
+    return content
 
 
 def compute_morlet_cwt(
     sig: np.ndarray,
-    t: np.ndarray,
-    freqs: np.ndarray,
-    omega_0: Optional[float] = 5,
-    phase: Optional[bool] = False
+    sfreq: float,
+    omega_0: float = 5,
+    phase: bool = False
 ) -> np.ndarray:
-    dt = t[1] - t[0]
-    widths = omega_0 / (2 * np.pi * freqs * dt)
+    """
+    Computes the continuous wavelet transform (CWT) of a signal using a Morlet wavelet.
+
+    Args:
+        sig (numpy.ndarray): Input signal to be transformed.
+        sfreq (float): Sampling frequency of the input signal.
+        omega_0 (float, optional): Center frequency of the wavelet. Defaults to 5.
+        phase (bool, optional): Flag to control the return type of the transformed data.2
+                                If `True`, only the phase angle will be returned.
+                                Otherwise, the magnitude squared will be returned. Defaults to False.
+
+    Returns:
+        numpy.ndarray: Transformed data of the input signal with a Morlet wavelet.
+                        If `phase` is `True`, the function returns a complex array of the same shape as `sig`.
+                        Otherwise, it returns a real array of the same shape as `sig`.
+    """
+    dt = 1/sfreq
+    freqs = np.arange(1, sfreq//2)
+    widths = omega_0 / ( 2*np.pi * freqs * dt)
     cwtmatr = sl.cwt(sig, lambda M, s: sl.morlet2(M, s, w=omega_0), widths)
     if phase:
         return cwtmatr
@@ -140,117 +92,202 @@ def compute_morlet_cwt(
         return np.real(cwtmatr)**2 + np.imag(cwtmatr)**2
 
 
-def compute_waveforms(model: mf.models.BaseModel) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    # time_courses = np.squeeze(model.lat_tcs.reshape(
-    #     [model.specs['n_latent'], -1, model.dataset.h_params['n_t']]
-    # ))
-    # time_courses_filtered = np.squeeze(model.lat_tcs_filt.reshape(
-    #     [model.specs['n_latent'], -1, model.dataset.h_params['n_t']]
-    # ))
-    time_courses = model.lat_tcs
-    time_courses_filtered = model.lat_tcs_filt
-    times = (1 / float(model.dataset.h_params['fs'])) *\
-        np.arange(model.dataset.h_params['n_t'])
-    induced = list()
-    induced_filt = list()
+def compute_induceds(interpreter: LFCNNInterpreter) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Computes induced activity of latent sources.
+
+    Args:
+        interpreter (LFCNNInterpreter): Instance of the LFCNNInterpreter class.
+
+    Returns:
+        tuple: A tuple of two numpy arrays, each with shape (n_sources, n_frequencies, n_times), containing the
+        induced activity for the original (unfiltered) and the filtered latent sources.
+    """
+    time_courses = np.transpose(interpreter.latent_sources, (1, 0, 2))
+    time_courses_filtered = np.transpose(interpreter.latent_sources_filtered, (1, 0, 2))
+    induceds = list()
+    induceds_filt = list()
 
     for tc, tc_filt in zip(time_courses, time_courses_filtered):
-        ls_induced = list()
-        ls_induced_filt = list()
+        ls_induceds = list()
+        ls_induceds_filt = list()
 
         for lc, lc_filt in zip(tc, tc_filt):
-            freqs = np.arange(1, model.dataset.h_params['fs']//2)
-            ls_induced.append(np.abs(compute_morlet_cwt(lc, times, freqs)))
-            ls_induced_filt.append(np.abs(compute_morlet_cwt(lc_filt, times, freqs)))
+            ls_induceds.append(np.abs(compute_morlet_cwt(lc, interpreter.info['sfreq'], 15)))#, 7.5)))
+            ls_induceds_filt.append(np.abs(compute_morlet_cwt(lc_filt, interpreter.info['sfreq'], 15)))#, 7.5)))
 
-        induced.append(np.array(ls_induced).mean(axis=0))
-        induced_filt.append(np.array(ls_induced_filt).mean(axis=0))
+        induceds.append(np.array(ls_induceds).mean(axis=0))
+        induceds_filt.append(np.array(ls_induceds_filt).mean(axis=0))
 
-    return np.array(induced), np.array(induced_filt), times, time_courses, time_courses_filtered
-
+    return np.array(induceds), np.array(induceds_filt)
 
 
-def save_parameters(content: Any, path: str, parameters_type: Optional[str] = '') -> NoReturn:
+class NetworkParameters(ABC):
+    """The NetworkParameters class is an abstract base class that defines the basic interface for neural network parameter objects. It includes abstract properties for the spatial, spectral, and temporal parameters of the network, as well as properties for the order and additional information. The class also provides methods for saving the object to a pickle file and for reading a pickle file.
 
-    parameters_type = parameters_type + ' ' if parameters_type else parameters_type
-    print(f'Saving {parameters_type} parameters...')
+    Attributes:
 
-    if path[-4:] != '.pkl':
-        raise OSError(f'Pickle file must have extension ".pkl", but it has "{path[-4:]}"')
+        None
 
-    pickle.dump(content, open(path, 'wb'))
+    Methods:
 
-    print('Successfully saved')
+        save(path: str | os.PathLike) -> None: Saves the object to a pickle file.
+        read_pkl(path: str | os.PathLike) -> 'NetworkParameters': Reads a pickle file and returns the contents as a new NetworkParameters object.
 
+    Abstract Properties:
 
-def eigencentrality(matrix: np.ndarray) -> np.ndarray:
+        spatial: An abstract property that returns a SpatialParameters object containing spatial filter and pattern information.
+        spectral: An abstract property that returns a SpectralParameters object containing spectral input, output, and response information.
+        temporal: An abstract property that returns a TemporalParameters object containing temporal information such as times, time courses, and induced activity.
+        order: An abstract property that returns a string indicating the order of the model.
+        info: An abstract property that returns a dictionary containing additional information about the model.
     """
-    Calculate the eigencentrality of a matrix.
+    @property
+    @abstractmethod
+    def spatial(self):
+        ...
+    @property
+    @abstractmethod
+    def spectral(self):
+        ...
+    @property
+    @abstractmethod
+    def temporal(self):
+        ...
 
-    Parameters
-    ----------
-    matrix : np.ndarray
-        The matrix to calculate the eigencentrality of.
+    @property
+    @abstractmethod
+    def order(self):
+        ...
 
-    Returns
-    -------
-    np.ndarray
-        The eigencentrality of the matrix.
+    @property
+    @abstractmethod
+    def info(self):
+        ...
+
+    def save(self, path: str | os.PathLike):
+        """
+        Save an NetworkParameters object using pickle serialization.
+
+        Args:
+        path (str | os.PathLike): the path and filename where the serialized object will be saved.
+        The file extension must be '.pkl'.
+
+        Raises:
+        OSError: if the file extension of path is not '.pkl'.
+
+        Returns:
+        None
     """
-    eigenvalues, eigenvectors = np.linalg.eig(matrix)
-    eigencentrality = eigenvectors[:,0]
-    return eigencentrality
+        save(self, path)
+
+    @staticmethod
+    def read_pkl(path: str | os.PathLike) -> 'NetworkParameters':
+        """
+        Read a pickled NetworkParameters object from a file.
+
+        Args:
+        path (str or os.PathLike): Path to the pickled file to be read.
+
+        Returns:
+        NetworkParameters: The content of the pickled file.
+
+        Raises:
+        FileNotFoundError: If the file specified by the path does not exist.
+        OSError: If the file specified by the path is not a valid pickle file.
+        """
+        return read_pkl(path)
 
 
-def moving_average(data: np.ndarray, kernel_size: int = 20) -> np.ndarray:
+class LFCNNParameters(NetworkParameters):
+    """A class representing the parameters required for a neural network.
+
+    This class is designed to provide the parameters necessary for a specific neural network. The `LFCNNParameters` class
+    takes a `LFCNNInterpreter` object, which is used to generate the spatial, spectral, and temporal parameters needed
+    for the network.
+
+    Attributes:
+        spatial (SpatialParameters): A named tuple that contains the spatial patterns and filters.
+        spectral (SpectralParameters): A named tuple that contains the frequency range, filter inputs, outputs,
+            responses and patterns.
+        temporal (TemporalParameters): A named tuple that contains the times, time courses, time courses filtered,
+            induceds, induceds filtered and patterns.
+        info (dict): A dictionary containing information about the data used in the network.
+        order (int): An integer representing the order of the loss function used by the network.
+
+    Methods:
+        save(path: str | os.PathLike): Saves the `LFCNNParameters` object to a .pkl file.
+        read_pkl(path: str | os.PathLike) -> 'LFCNNParameters': Loads the `LFCNNParameters` object from a .pkl file.
     """
-    Compute the moving average of a given data array.
+    def __init__(self, interpreter: LFCNNInterpreter):
+        """Initializes the `LFCNNParameters` object.
 
-    Parameters
-    ----------
-    data : np.ndarray
-        The data array.
-    kernel_size : int
-        The size of the kernel.
+        Args:
+            interpreter (LFCNNInterpreter): An `LFCNNInterpreter` object that is used to generate the required parameters.
+        """
+        self._info = interpreter.info
+        self._spatial = SpatialParameters(interpreter.spatial_patterns, interpreter.spatial_filters)
+        self._spectral = SpectralParameters(
+            interpreter.frequency_range,
+            interpreter.filter_inputs,
+            interpreter.filter_outputs,
+            interpreter.filter_responses,
+            interpreter.filter_patterns
+        )
+        times = np.arange(0, interpreter.latent_sources.shape[-1]/interpreter.info['sfreq'], 1/interpreter.info['sfreq'])
+        spectrums, spectrums_filtered = compute_induceds(interpreter)
+        self._temporal = TemporalParameters(
+            times,
+            interpreter.latent_sources,
+            interpreter.latent_sources_filtered,
+            spectrums, spectrums_filtered
+        )
+        self._order = interpreter.branchwise_loss
 
-    Returns
-    -------
-    np.ndarray
-        The moving average of the data array.
-    """
-    kernel = np.ones(kernel_size) / kernel_size
-    data_convolved = np.convolve(data, kernel, mode='same')
-    return np.concatenate([
-        [np.nan for i in range(kernel_size//2)],
-        sp.stats.zscore(data_convolved[kernel_size//2:-kernel_size//2]),
-        [np.nan for i in range(kernel_size//2)],
-    ])
+    @property
+    def spatial(self):
+        """A property getter method that returns the `SpatialParameters` attribute of the `LFCNNParameters` object.
 
+        Returns:
+            SpatialParameters: A named tuple containing the spatial patterns and filters.
+        """
+        return self._spatial
 
-def compute_compression_parameters(model) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Compute the cropping of the latent components time courses.
+    @property
+    def spectral(self):
+        """A property getter method that returns the `SpectralParameters` attribute of the `LFCNNParameters` object.
 
-    Parameters
-    ----------
-    model : mneflow.models.BaseModel
-        The model to compute the cropping for.
+        Returns:
+            SpectralParameters: A named tuple containing the frequency range, filter inputs, outputs, responses and
+                patterns.
+        """
+        return self._spectral
 
-    Returns
-    -------
-    temp_relevance_loss : np.ndarray
-        The temporal relevance loss.
-    eigencentrality : np.ndarray
-        The eigencentrality of compression weights covariance.
-    time_courses_env : np.ndarray
-        The latent component envelopes.
-    compression_weights : np.ndarray
-        The compression weights.
-    """
-    compression_weights = np.array([
-        pool.weights[0].numpy()
-        for pool in model.pool_list
-    ])
+    @property
+    def temporal(self):
+        """A property getter method that returns the `TemporalParameters` attribute of the `LFCNNParameters` object.
 
-    return model.temp_relevance_loss,\
-        compression_weights
+        Returns:
+            TemporalParameters: A named tuple containing the times, time courses, time courses filtered, induceds,
+                induceds filtered and patterns.
+        """
+        return self._temporal
+
+    @property
+    def info(self):
+        """
+        Returns a mne.Info object containing the information about the recordings.
+
+        Returns
+        """
+        return self._info
+
+    @property
+    def order(self):
+        """
+        This property returns the order of the branches of the LFCNN model.
+
+        Returns:
+        int: The order of the LFCNN model brancehs.
+        """
+        return self._order
