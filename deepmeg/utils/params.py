@@ -242,7 +242,7 @@ class LFCNNParameters(NetworkParameters):
             interpreter.latent_sources_filtered,
             spectrums, spectrums_filtered
         )
-        self._order = interpreter.branchwise_loss
+        self._branchwise_loss = interpreter.branchwise_loss
 
     @property
     def spatial(self):
@@ -290,4 +290,4 @@ class LFCNNParameters(NetworkParameters):
         Returns:
         int: The order of the LFCNN model brancehs.
         """
-        return self._order
+        return -self._branchwise_loss
