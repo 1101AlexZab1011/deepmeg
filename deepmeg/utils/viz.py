@@ -596,8 +596,8 @@ class InterpretationPlotter:
             induced_norm = induced_norm[:f_max, crop:-crop]
             np.nan_to_num(induced_norm, copy=False)
 
-            vmin = np.percentile(induced_norm, 5)
-            vmax = np.percentile(induced_norm, 95)
+            vmin = np.percentile(induced_norm, 1)
+            vmax = np.percentile(induced_norm, 99)
 
             pos = ax22.imshow(
                 induced_norm,
