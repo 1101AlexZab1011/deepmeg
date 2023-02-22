@@ -10,10 +10,8 @@ from matplotlib.widgets import Button
 from collections.abc import Iterable
 import copy
 from .colors import generate_cmap
-
-from deepmeg.preprocessing.transforms import rowwise_zscore
-from deepmeg.utils.params import NetworkParameters
-
+from ..preprocessing.transforms import rowwise_zscore
+from .params import NetworkParameters
 
 def plot_patterns(
     patterns: np.ndarray,
