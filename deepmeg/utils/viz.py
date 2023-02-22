@@ -6,7 +6,6 @@ import mne
 from collections import namedtuple
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 from matplotlib.widgets import Button
 from collections.abc import Iterable
 import copy
