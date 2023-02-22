@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from . import BaseModel
 from ..layers import AutoCov1D
-from ..convtools import conviter
+from ..utils.convtools import conviter
 
 
 class HilbertNet(BaseModel):

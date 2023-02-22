@@ -1,9 +1,35 @@
 import torch
 import numpy as np
+from typing import TypeVar
+
+dType = TypeVar('dType', np.ndarray, torch.Tensor)
 
 
-def zscore(x: torch.Tensor) -> torch.Tensor:
+def zscore(x: dType) -> dType:
     return (x - x.mean())/x.std()
+
+
+def rowwise_zscore(x: dType) -> dType:
+    """
+    The rowwise_zscore function computes the z-score of each row of a given 2D array of numerical data.
+
+    Args:
+    x (np.ndarray | torch.Tensor): The input array of shape (m, n) where m is the number of rows and n is the number of columns.
+
+    Returns:
+    np.ndarray | torch.Tensor: An array of the same shape as the input data where each row has been standardized to have zero mean and unit variance.
+
+    Raises:
+    ValueError: If the input array has less than two dimensions.
+
+    Example:
+    >>> data = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    >>> rowwise_zscore(data)
+    array([[-1.22474487, 0. , 1.22474487],
+    [-1.22474487, 0. , 1.22474487],
+    [-1.22474487, 0. , 1.22474487]])
+    """
+    return (x - x.mean(axis=1, keepdims=True)) / x.std(axis=1, keepdims=True)
 
 
 def one_hot_encoder(Y: np.ndarray) -> np.ndarray:

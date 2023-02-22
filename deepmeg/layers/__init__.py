@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch.nn.init as init
 import math
 import torch
-from deepmeg.convtools import compute_output_shape, conviter
+from deepmeg.utils.convtools import compute_output_shape, conviter
 
 class AutoCov1D(nn.Module):
     """Autocovariance 1D layer.
