@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 import os
 import numpy as np
-from ..deepmeg.interpreters import LFCNNInterpreter
+from ..interpreters import LFCNNInterpreter
 import scipy.signal as sl
 
 
