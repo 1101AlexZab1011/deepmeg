@@ -10,7 +10,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from deepmeg.utils.printout import nostdout
-from deepmeg.utils.viz import generate_cmap
+from deepmeg.utils.colors import generate_cmap
 
 
 
