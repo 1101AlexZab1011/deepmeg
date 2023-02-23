@@ -135,11 +135,13 @@ class FourierNorm(nn.Module):
             n_components = n_points//2
 
         self.layer = Fourier(n_points, n_components)
+        self.dp = nn.Dropout(0.5)
         self.bn = nn.BatchNorm1d(n_points)
 
     def forward(self, x):
         x = self.bn(x)
         x = self.layer(x)
+        x = self.dp(x)
         return x
 
 
