@@ -29,6 +29,9 @@ class DummyFile(object):
         if len(x.rstrip()) > 0:
             tqdm.write(x, file=self.file)
 
+    def flush(self):
+        self.file.flush()
+
 @contextlib.contextmanager
 def nostdout() -> Generator:
     """
