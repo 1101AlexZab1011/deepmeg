@@ -41,6 +41,7 @@ class Trainer:
         self.criterion = criterion
         self.lr_scheduler = lr_scheduler
         self.device = device
+        self.model.to(self.device)
 
         if metric_functions and not isinstance(metric_functions, Sequence):
             metric_functions = [metric_functions]
