@@ -266,10 +266,10 @@ class CanonicalCov1D(nn.Module):
 
         convargs = ((X_part1.shape[1], X_part1.shape[0]), self.window_size, self.padding, self.stride)
         n_windows = compute_output_shape(*convargs)[0]
-        out_tensor = torch.zeros(X.shape[0], n_windows, self.weight.shape[-1]) # ~ batches x n_windows x out_channels
+        out_tensor = torch.zeros(X.shape[0], n_windows, self.weight1.shape[-1]) # ~ batches x n_windows x out_channels
 
         # iter over neurons
-        for n_neuron in range(self.weight.shape[-1]):
+        for n_neuron in range(self.weight1.shape[-1]):
             for p, q, k in conviter(*convargs):
                 # p shape: n_times, ...
                 # q shape: n_windows, 0
