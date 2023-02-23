@@ -234,7 +234,7 @@ class CanonicalCov1D(nn.Module):
         self.weight2 = nn.Parameter(torch.empty(self.window_size, self.latent_dim, out_channels))
 
         if bias:
-            self.bias1 = nn.Parameter(torch.empty(out_channels))
+            self.bias = nn.Parameter(torch.empty(out_channels))
         else:
             self.register_parameter('bias', None)
 
