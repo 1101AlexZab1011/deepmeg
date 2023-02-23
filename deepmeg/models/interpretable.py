@@ -40,7 +40,7 @@ class HilbertNet(BaseModel):
         self.temp_conv = nn.Conv1d(n_latent, n_latent, kernel_size=filter_size, groups=n_latent, padding='same')
         self.temp_conv_activation = nn.LeakyReLU(-1)
         self.env_conv = nn.Conv1d(n_latent, n_latent, kernel_size=filter_size, groups=n_latent, padding='same')
-        final_out_features = (n_times//pool_factor+1)*n_latent
+        final_out_features = (n_times//pool_factor)*n_latent if not n_times%pool_factor else (n_times//pool_factor + 1)*n_latent
         self.fc_layer = nn.Linear(final_out_features, n_outputs)
 
 
