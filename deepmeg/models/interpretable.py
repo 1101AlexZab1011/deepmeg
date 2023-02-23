@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from . import BaseModel
-from ..layers import AutoCov1D
+from ..layers import AutoCov1D, Fourier
 from ..utils.convtools import conviter
 
 

@@ -32,6 +32,46 @@ def rowwise_zscore(x: dType) -> dType:
     return (x - x.mean(axis=1, keepdims=True)) / x.std(axis=1, keepdims=True)
 
 
+class ZScoreScaler(object):
+    """
+    A class for scaling data to zero mean and unit variance using z-score scaling.
+
+    Examples:
+    scaler = ZScoreScaler()
+    scaled_data = scaler.fit_transform(data)
+
+    Attributes:
+    mean (np.ndarray): The mean of the training data.
+    std (np.ndarray): The standard deviation of the training data.
+
+    Methods:
+    fit(data: np.ndarray) -> None: Computes the mean and standard deviation of the training data.
+    transform(data: np.ndarray) -> np.ndarray: Applies z-score scaling to the input data.
+    fit_transform(data: np.ndarray) -> np.ndarray: Computes the mean and standard deviation of the training data, and applies
+        z-score scaling to the input data.
+
+    Raises:
+        ValueError: If the fit method has not been called before transform.
+    """
+    def __init__(self):
+        self.mean = None
+        self.std = None
+
+    def fit(self, data: np.ndarray):
+        self.mean = data.mean(axis=1, keepdims=True)
+        self.std = data.std(axis=1, keepdims=True)
+
+    def transform(self, data: np.ndarray):
+        if self.mean is None or self.std is None:
+            raise ValueError('Fit the data first')
+
+        return (data - self.mean) / self.std
+
+    def fit_transform(self, data: np.ndarray):
+        self.fit(data)
+        return self.transform(data)
+
+
 def one_hot_encoder(Y: np.ndarray) -> np.ndarray:
     """One-hot encoder
 

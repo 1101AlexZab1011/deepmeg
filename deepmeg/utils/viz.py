@@ -715,11 +715,11 @@ class InterpretationPlotter:
                     times,
                     sp.stats.zscore(
                         self.params.temporal.patterns[sorting_callback.sorted_indices[iy]],
-                        color='tab:red',
-                        linewidth=1.25,
-                        linestyle='--',
-                        alpha=.75
-                    )
+                    ),
+                    color='tab:red',
+                    linewidth=1.25,
+                    linestyle='--',
+                    alpha=.75
                 )
                 temp_legend.append('temporal pattern')
             ax24.legend(temp_legend, loc='upper right')
