@@ -234,16 +234,17 @@ class CanonicalCov1D(nn.Module):
         self.weight2 = nn.Parameter(torch.empty(self.window_size, self.latent_dim, out_channels))
 
         if bias:
-            self.bias = nn.Parameter(torch.empty(out_channels))
+            self.bias1 = nn.Parameter(torch.empty(out_channels))
         else:
             self.register_parameter('bias', None)
 
         self.reset_parameters()
 
     def reset_parameters(self) -> None:
-        init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+        init.kaiming_uniform_(self.weight1, a=math.sqrt(5))
+        init.kaiming_uniform_(self.weight2, a=math.sqrt(5))
         if self.bias is not None:
-            fan_in, _ = init._calculate_fan_in_and_fan_out(self.weight)
+            fan_in, _ = init._calculate_fan_in_and_fan_out(self.weight1)
             if fan_in != 0:
                 bound = 1 / math.sqrt(fan_in)
                 init.uniform_(self.bias, -bound, bound)
