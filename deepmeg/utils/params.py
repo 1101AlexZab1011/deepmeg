@@ -327,7 +327,7 @@ class SPIRITParameters(LFCNNParameters):
         times = np.arange(0, interpreter.latent_sources.shape[-1]/interpreter.info['sfreq'], 1/interpreter.info['sfreq'])
         spectrums, spectrums_filtered = compute_induceds(interpreter)
         branch_tempwise_estimate = interpreter.temporal_patterns.mean(0)
-        interp_cubic = lambda y: sp.interpolate.interp1d(np.linspace(0, times[-1], y.shape[1]), y, 'quadratic')(times)
+        interp_cubic = lambda y: sp.interpolate.interp1d(np.linspace(0, times[-1], y.shape[1]), y, 'cubic')(times)
 
         self._temporal = TemporalParameters(
             times,
