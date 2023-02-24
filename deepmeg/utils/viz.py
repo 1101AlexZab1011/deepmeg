@@ -514,6 +514,7 @@ class InterpretationPlotter:
         ax24.spines['right'].set_alpha(.2)
         ax24.spines['left'].set_alpha(.2)
         ax24.spines['bottom'].set_alpha(.2)
+        ax24.set_xticks(ranges)
         ax24.set_xticklabels(times)
         ax24.set_xlabel('Time (s)')
         ax24.set_ylabel('Amplitude (z-score)')
