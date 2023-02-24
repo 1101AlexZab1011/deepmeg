@@ -694,7 +694,6 @@ class InterpretationPlotter:
             times = self.params.temporal.times
             temp_legend = list()
             ax24.plot(
-                times,
                 sp.stats.zscore(
                     self.params.temporal.time_courses.mean(0)[sorting_callback.sorted_indices[iy]]
                 ),
@@ -702,7 +701,6 @@ class InterpretationPlotter:
             )
             temp_legend.append('spatially filtered')
             ax24.plot(
-                times,
                 sp.stats.zscore(
                     self.params.temporal.time_courses_filtered.mean(0)[sorting_callback.sorted_indices[iy]]
                 ),
@@ -712,7 +710,6 @@ class InterpretationPlotter:
             temp_legend.append('temporally filtered')
             if self.params.temporal.patterns is not None:
                 ax24.plot(
-                    times,
                     sp.stats.zscore(
                         self.params.temporal.patterns[sorting_callback.sorted_indices[iy]],
                     ),
