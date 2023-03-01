@@ -26,8 +26,8 @@ class FourierSPIRIT(BaseModel):
             for _ in range(n_latent)
         ])
         self.expander = nn.Conv1d(
-            in_channels=8,
-            out_channels=8,
+            in_channels=n_latent,
+            out_channels=n_latent,
             kernel_size=(2,),
             padding=1
         )
@@ -103,8 +103,8 @@ class CanonicalSPIRIT(BaseModel):
             for _ in range(n_latent)
         ])
         self.expander = nn.Conv1d(
-            in_channels=8,
-            out_channels=8,
+            in_channels=n_latent,
+            out_channels=n_latent,
             kernel_size=(2,),
             padding=1
         )
