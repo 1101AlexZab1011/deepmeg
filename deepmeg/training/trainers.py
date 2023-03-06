@@ -48,7 +48,7 @@ class Trainer:
 
         self.metric_functions = metric_functions if metric_functions else list()
         self.epoch_number = epoch_number
-        self.__interrupt = False
+        self._interrupt = False
 
         if callbacks:
             if isinstance(callbacks, Callback):
@@ -66,7 +66,7 @@ class Trainer:
 
     def interrupt(self, interrupt: bool = True):
         """Immediately stop training/evaluation"""
-        self.__interrupt = interrupt
+        self._interrupt = interrupt
 
     @torch.no_grad()
     def evaluate_batch(self, val_iterator: Iterator, eval_on_n_batches: int) -> Optional[dict[str, float]]:
@@ -97,7 +97,7 @@ class Trainer:
                     for callback in self.callbacks:
                         callback.on_batch_begin(xs, ys_true)
                         callback.on_eval_batch_begin(xs, ys_true)
-                if self.__interrupt:
+                if self._interrupt:
                     break
             except StopIteration:
                 if real_batch_number == 0:
@@ -160,7 +160,7 @@ class Trainer:
         while True:
             batch_metrics = self.evaluate_batch(val_iterator, eval_on_n_batches)
 
-            if batch_metrics is None or self.__interrupt:
+            if batch_metrics is None or self._interrupt:
                 break
 
             for metric_name in batch_metrics:
@@ -210,7 +210,7 @@ class Trainer:
                         callback.on_batch_begin(xs, ys_true)
                         callback.on_train_batch_begin(xs, ys_true)
 
-                if self.__interrupt:
+                if self._interrupt:
                     raise StopIteration
             except StopIteration:
                 if real_batch_number == 0:
@@ -272,7 +272,7 @@ class Trainer:
         while True:
             batch_metrics = self.fit_batch(train_iterator, update_every_n_batches)
 
-            if batch_metrics is None or self.__interrupt:
+            if batch_metrics is None or self._interrupt:
                 break
 
             for metric_name in batch_metrics:
@@ -324,7 +324,7 @@ class Trainer:
 
                     self.epoch_number += 1
 
-                    if self.__interrupt:
+                    if self._interrupt:
                         print(f'The training loop was completed at epoch {self.epoch_number} due to an interruption')
                         self.interrupt(False)
                         break
