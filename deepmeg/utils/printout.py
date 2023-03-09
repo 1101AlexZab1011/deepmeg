@@ -37,7 +37,11 @@ def nostdout() -> Generator:
     """
     A context manager that temporarily redirects the stdout to a DummyFile object.
     """
-    save_stdout = sys.stdout
-    sys.stdout = DummyFile(sys.stdout)
+    if not isinstance(sys.stdout, DummyFile):
+        save_stdout = sys.stdout
+    else:
+        save_stdout = sys.stdout.file
+
+    sys.stdout = DummyFile(save_stdout)
     yield
     sys.stdout = save_stdout

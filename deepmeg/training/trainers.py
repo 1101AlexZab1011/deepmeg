@@ -117,8 +117,8 @@ class Trainer:
 
             losses.append(loss.item())
 
-            predictions.append(ys_pred.cpu())
-            targets.append(ys_true.cpu())
+            predictions.append(ys_pred.to(self.device))
+            targets.append(ys_true.to(self.device))
 
         predictions = torch.cat(predictions, dim=0)
         targets = torch.cat(targets, dim=0)
@@ -231,8 +231,8 @@ class Trainer:
             (loss / update_every_n_batches).backward()
             losses.append(loss.item())
 
-            predictions.append(ys_pred.cpu())
-            targets.append(ys_true.cpu())
+            predictions.append(ys_pred.to(self.device))
+            targets.append(ys_true.to(self.device))
 
         self.optimizer.step()
 
