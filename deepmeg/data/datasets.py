@@ -15,7 +15,7 @@ class EpochsDataset(Dataset):
     def __init__(
         self,
         epochs: str | os.PathLike | tuple[np.ndarray, np.ndarray] | mne.Epochs,
-        transform: Callable[[torch.Tensor], torch.Tensor] = None,target_transform: Callable[[torch.Tensor], torch.Tensor]  = None,
+        transform: Callable[[torch.Tensor], torch.Tensor] = None, target_transform: Callable[[torch.Tensor], torch.Tensor]  = None,
         savepath: str | os.PathLike = './data'
     ):
         """
