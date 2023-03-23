@@ -86,7 +86,7 @@ def one_hot_encoder(Y: np.ndarray) -> np.ndarray:
 
     for val in Y:
         new_y_value = np.zeros(n_classes)
-        new_y_value[int(val) - 1] = 1
+        new_y_value[int(val)] = 1
         y.append(new_y_value)
 
     return np.array(y)

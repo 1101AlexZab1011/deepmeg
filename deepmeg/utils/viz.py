@@ -12,6 +12,31 @@ import copy
 from .colors import generate_cmap
 from ..preprocessing.transforms import rowwise_zscore
 from .params import NetworkParameters
+from collections import defaultdict
+
+
+def plot_metrics(metrics: dict[str, np.ndarray]) -> mpl.figure.Figure | list[mpl.figure.Figure]:
+    plot_dict = defaultdict(dict)
+
+    for metric, values in metrics.items():
+        metric_data = metric.split('_')
+        metric_name = '_'.join(metric_data[:-1])
+        metric_kind = metric_data[-1]
+        plot_dict[metric_name][metric_kind] = values
+
+    figs = list()
+    for metric_name, kind_dict in plot_dict.items():
+        fig, ax = plt.subplots(1, 1)
+        legend = list()
+        for metric_kind, kind in kind_dict.items():
+            ax.plot(kind)
+            legend.append(metric_kind)
+        ax.set_title(metric_name)
+        ax.legend(legend)
+        figs.append(fig)
+
+    return figs if len(figs) > 1 else figs[0]
+
 
 def plot_patterns(
     patterns: np.ndarray,
