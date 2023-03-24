@@ -22,7 +22,7 @@ class LW(nn.Module):
 
     def forward(self, x):
         x1 = x*self.w1 + self.b
-        x2 = nn.functional.sigmoid(x*self.w2)
+        x2 = torch.sigmoid(x*self.w2)
 
         return x1*x2
 

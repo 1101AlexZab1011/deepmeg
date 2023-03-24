@@ -410,8 +410,11 @@ class LFCNNInterpreter:
                 '#d62728'
             )
         )
-        if title:
+
+        if title == True:
             fig.suptitle(f'Branch {branch_num}')
+        elif title and title is not None:
+            fig.suptitle(title)
 
         fig.tight_layout()
 

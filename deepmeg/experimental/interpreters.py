@@ -249,7 +249,7 @@ class LFCNNWInterpreter(SPIRITInterpreter):
         for i, lw in enumerate(self.model.temp_sel):
             source = x[:, i, :]
             x1 = source*lw.w1 + lw.b
-            x2 = nn.functional.sigmoid(source*lw.w2)
+            x2 = torch.sigmoid(source*lw.w2)
             temporal_patterns.append(x2[:, ::self.model.pool_factor].contiguous())
             latent_sources_weighted.append(x1*x2)
         return torch.stack(temporal_patterns, -2).numpy(), torch.stack(latent_sources_weighted, -2).numpy()
