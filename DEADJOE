@@ -1,0 +1,23 @@
+
+*** These modified files were found in JOE when it aborted on Fri Mar 24 10:57:28 2023
+*** JOE was aborted by UNIX signal 1
+
+*** File '(Unnamed)'
+afowhog
+
+*** File '(Unnamed)'
+/data/pt_02648/deepmeg/.git/MERGE_MSG
+
+*** File '/data/pt_02648/deepmeg/.git/MERGE_MSG'
+Merge branch 'main' of https://github.com/1101AlexZab1011/deepmeg
+# Please enter a commit message to explain why this merge is necessary,
+# especially if it merges an updated upstream into a topic branch.
+#
+# Lines starting with '#' will be ignored, and an empty message aborts
+# the commit.
+
+*** File '* Startup Log *'
+Processing '/etc/joe/editorrc'...
+Processing '/etc/joe/ftyperc'...
+Finished processing /etc/joe/ftyperc
+Finished processing /etc/joe/editorrc
