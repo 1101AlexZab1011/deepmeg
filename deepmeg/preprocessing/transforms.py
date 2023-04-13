@@ -82,7 +82,16 @@ def one_hot_encoder(Y: np.ndarray) -> np.ndarray:
         np.ndarray: encoded data with shape (n_samples,)
     """
     y = list()
-    n_classes = len(np.unique(Y))
+    classes = np.unique(Y)
+    n_classes = len(classes)
+    classes_norm = np.array(range(n_classes))
+
+    if not np.array_equal(classes_norm, classes):
+        classes_dict = {k: v  for k, v in zip(classes, classes_norm)}
+        Y = np.array(list(map(
+            lambda el: classes_dict[el],
+            Y
+        )))
 
     for val in Y:
         new_y_value = np.zeros(n_classes)
