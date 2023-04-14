@@ -65,15 +65,17 @@ class LFCNNInterpreter:
         x_flatten = x.reshape(x.shape[1], x.shape[0]*x.shape[-1])
         latent_sources = self.model.unmixing_layer(x)
         latent_sources_filtered = self.model.temp_conv(latent_sources)
-        latent_sources_flatten = latent_sources_filtered.reshape(latent_sources.shape[1], latent_sources.shape[0]*latent_sources.shape[-1])
+        latent_sources_flatten = latent_sources_filtered.permute(1, 0, -1)
+        latent_sources_flatten = latent_sources_flatten.reshape(latent_sources_flatten.shape[0], latent_sources_flatten.shape[1]*latent_sources_flatten.shape[2])
         self._latent_sources = latent_sources.numpy()
         self._latent_sources_filtered = latent_sources_filtered.numpy()
         unmixing_matrix = self.model.unmixing_layer.weight.numpy()[:, :, 0]
         filters = unmixing_matrix.T
         # covariance of latent_sources should aim to I, due to linear independance
         x = x.permute(1, 0, -1)
-        x_flatten = x.reshape(x.shape[0], x.shape[1]*x.shape[-1])
+        x_flatten = x.reshape(x.shape[0], x.shape[1]*x.shape[2])
         patterns = list()
+
         for comp_num in range(len(self.model.unmixing_layer.weight)):
             x_filt_flatten = torch.zeros_like(x_flatten)
 

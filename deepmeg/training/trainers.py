@@ -110,7 +110,7 @@ class Trainer:
 
             if self.callbacks:
                 for callback in self.callbacks:
-                    new_loss = callback.on_loss_computed(xs, ys_true, ys_pred, loss)
+                    new_loss = callback.on_loss_computed(xs, ys_true, ys_pred, loss, False)
 
                     if new_loss is not None:
                         loss = new_loss

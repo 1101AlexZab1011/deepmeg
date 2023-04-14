@@ -168,7 +168,8 @@ class Callback:
         X: torch.Tensor,
         Y: torch.Tensor,
         Y_pred: torch.Tensor,
-        loss: torch.Tensor
+        loss: torch.Tensor,
+        is_training: bool = True,
     ):
         """Called after the loss for a batch of data has been computed.
 
@@ -180,6 +181,7 @@ class Callback:
             Y (torch.Tensor): A batch of target data.
             Y_pred (torch.Tensor): A batch of predicted data.
             loss (torch.Tensor): The computed loss for this batch of data.
+            is_training (bool): Whether a model is training or not.
         """
         ...
 
@@ -373,7 +375,7 @@ class L1Reg(Callback):
         super().set_trainer(trainer)
         self.model = self.trainer.model
 
-    def on_loss_computed(self, X, Y, Y_pred, loss):
+    def on_loss_computed(self, X, Y, Y_pred, loss, is_training=True):
         """
         Computes the loss value with L1 regularization
 
@@ -398,7 +400,7 @@ class L2Reg(L1Reg):
     """
     A callback that performing L2 regularization.
     """
-    def on_loss_computed(self, X, Y, Y_pred, loss):
+    def on_loss_computed(self, X, Y, Y_pred, loss, is_training=True):
         """
         Computes the loss value with L2 regularization.
         Args:
