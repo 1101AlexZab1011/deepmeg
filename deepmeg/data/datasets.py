@@ -149,7 +149,7 @@ class EpochsDatasetWithMeta(EpochsDataset):
             Y = [torch.Tensor(target) for target in epochs[1]]
 
             if len(epochs) == 3:
-                Z = metadata
+                Z = epochs[2]
             else:
                 Z = [None for _ in range(len(X))]
         else:
