@@ -174,21 +174,32 @@ class EpochsDatasetWithMeta(EpochsDataset):
         Returns a processed data sample and its target with optional metadata from the dataset.
 
         Args:
-            idx: An integer representing the index of the data sample.
+            idx: An integer representing the index of the data sample,
+                integer and a keyword "meta" to load meta data only for corresponding index or
+                integer and a keyword "all" to load both the data sample and its meta data.
 
         Returns:
             X: A PyTorch Tensor representing the processed input data sample.
             Y: A PyTorch Tensor representing the processed target data.
             Z: A PyTorch Tensor representing the processed metadata, or None if not available.
 
-        """
-        sample_path = os.path.join(self.savepath, f'sample_{idx}.pt')
-        target_path = os.path.join(self.savepath, f'target_{idx}.pt')
-        meta_path = os.path.join(self.savepath, f'meta_{idx}.pt')
+        Raises:
+            ValueError: If a keyword for meta data policy is invalid.
 
-        X = torch.load(sample_path)
-        Y = torch.load(target_path)
-        Z = torch.load(meta_path) if os.path.exists(meta_path) else None
+        """
+        loadmeta = None
+        if isinstance(idx, tuple):
+            idx, loadmeta = idx
+
+        if loadmeta != 'meta':
+            sample_path = os.path.join(self.savepath, f'sample_{idx}.pt')
+            target_path = os.path.join(self.savepath, f'target_{idx}.pt')
+            X = torch.load(sample_path)
+            Y = torch.load(target_path)
+
+        if loadmeta in ('meta', 'all'):
+            meta_path = os.path.join(self.savepath, f'meta_{idx}.pt')
+            Z = torch.load(meta_path) if os.path.exists(meta_path) else None
 
         if self.transform:
             X = self.transform(X)
@@ -196,4 +207,11 @@ class EpochsDatasetWithMeta(EpochsDataset):
         if self.target_transform:
             Y = self.target_transform(Y)
 
-        return X, Y, Z
+        if loadmeta == 'meta':
+            return Z
+        elif loadmeta == 'all':
+            return X, Y, Z
+        elif loadmeta is None:
+            return X, Y
+        else:
+            raise ValueError(f'Invalid option for a keyword for meta data policy: "{loadmeta}". You can either specify "meta" or "all"')
