@@ -6,6 +6,7 @@ from torch.utils.data import Dataset
 import numpy as np
 from ..preprocessing.transforms import one_hot_encoder
 from ..utils import check_path
+from copy import deepcopy
 
 
 class EpochsDataset(Dataset):
@@ -149,7 +150,7 @@ class EpochsDatasetWithMeta(EpochsDataset):
             Y = [torch.Tensor(target) for target in epochs[1]]
 
             if len(epochs) == 3:
-                Z = epochs[2]
+                Z = [metadata for metadata in epochs[2]]
             else:
                 Z = [None for _ in range(len(X))]
         else:
@@ -174,32 +175,21 @@ class EpochsDatasetWithMeta(EpochsDataset):
         Returns a processed data sample and its target with optional metadata from the dataset.
 
         Args:
-            idx: An integer representing the index of the data sample,
-                integer and a keyword "meta" to load meta data only for corresponding index or
-                integer and a keyword "all" to load both the data sample and its meta data.
+            idx: An integer representing the index of the data sample.
 
         Returns:
             X: A PyTorch Tensor representing the processed input data sample.
             Y: A PyTorch Tensor representing the processed target data.
-            Z: A PyTorch Tensor representing the processed metadata, or None if not available.
-
-        Raises:
-            ValueError: If a keyword for meta data policy is invalid.
+            Z: A PyTorch Tensor representing the metadata, or None if not available.
 
         """
-        loadmeta = None
-        if isinstance(idx, tuple):
-            idx, loadmeta = idx
+        sample_path = os.path.join(self.savepath, f'sample_{idx}.pt')
+        target_path = os.path.join(self.savepath, f'target_{idx}.pt')
+        meta_path = os.path.join(self.savepath, f'meta_{idx}.pt')
 
-        if loadmeta != 'meta':
-            sample_path = os.path.join(self.savepath, f'sample_{idx}.pt')
-            target_path = os.path.join(self.savepath, f'target_{idx}.pt')
-            X = torch.load(sample_path)
-            Y = torch.load(target_path)
-
-        if loadmeta in ('meta', 'all'):
-            meta_path = os.path.join(self.savepath, f'meta_{idx}.pt')
-            Z = torch.load(meta_path) if os.path.exists(meta_path) else None
+        X = torch.load(sample_path)
+        Y = torch.load(target_path)
+        Z = torch.load(meta_path) if os.path.exists(meta_path) else None
 
         if self.transform:
             X = self.transform(X)
@@ -207,11 +197,4 @@ class EpochsDatasetWithMeta(EpochsDataset):
         if self.target_transform:
             Y = self.target_transform(Y)
 
-        if loadmeta == 'meta':
-            return Z
-        elif loadmeta == 'all':
-            return X, Y, Z
-        elif loadmeta is None:
-            return X, Y
-        else:
-            raise ValueError(f'Invalid option for a keyword for meta data policy: "{loadmeta}". You can either specify "meta" or "all"')
+        return X, Y, Z
