@@ -1,5 +1,5 @@
 import os
-from typing import Callable
+from typing import Callable, Iterable
 import mne
 import torch
 from torch.utils.data import Dataset
@@ -79,6 +79,7 @@ class EpochsDataset(Dataset):
 
         if self.transform:
             X = self.transform(X)
+
         if self.target_transform:
             Y = self.target_transform(Y)
 
@@ -107,3 +108,92 @@ class EpochsDataset(Dataset):
 def read_epochs_dataset(path: str | os.PathLike) -> EpochsDataset:
     """Reads epochs dataset in '.pt' format"""
     return torch.load(path)
+
+
+class EpochsDatasetWithMeta(EpochsDataset):
+    def __init__(
+        self,
+        epochs: str | os.PathLike | tuple[np.ndarray, np.ndarray] | tuple[np.ndarray, np.ndarray, Iterable] | mne.Epochs,
+        transform: Callable[[torch.Tensor], torch.Tensor] = None, target_transform: Callable[[torch.Tensor], torch.Tensor]  = None,
+        savepath: str | os.PathLike = './data'
+    ):
+        """
+        A PyTorch dataset class for EEG data with additional metadata.
+
+        Args:
+            epochs: An instance of mne.Epochs or a tuple of EEG data X and target Y with optional metadata Z, or a file path to load mne.Epochs data.
+            transform: A callable function to apply a transformation on the input data.
+            target_transform: A callable function to apply a transformation on the target data.
+            savepath: A path to the directory to save the processed data.
+
+        Raises:
+            ValueError: If the data type for samples is not supported.
+
+        Attributes:
+            n_samples: An integer representing the total number of data samples.
+            savepath: A path to the directory to save the processed data.
+            transform: A callable function to apply a transformation on the input data.
+            target_transform: A callable function to apply a transformation on the target data.
+        """
+        if isinstance(epochs, (str, os.PathLike)):
+            epochs = mne.read_epochs(epochs)
+
+        if isinstance(epochs, (mne.Epochs, mne.epochs.EpochsArray)):
+            data = epochs.get_data()
+            X = [torch.Tensor(sample) for sample in data]
+            Y = one_hot_encoder(epochs.events[:, 2])
+            Y = [torch.Tensor(event) for event in Y]
+            Z = list(epochs.metadata.iterrows()) if epochs.metadata is not None else [None for _ in range(len(X))]
+        elif isinstance(epochs, tuple):
+            X = [torch.Tensor(sample) for sample in epochs[0]]
+            Y = [torch.Tensor(target) for target in epochs[1]]
+
+            if len(epochs) == 3:
+                Z = [metadata for metadata in epochs[2]]
+            else:
+                Z = [None for _ in range(len(X))]
+        else:
+            raise ValueError(f'Unsupported type for data samples: {type(epochs)}')
+
+        self.n_samples = len(X)
+        self.savepath = savepath
+        self.transform = transform
+        self.target_transform = target_transform
+
+        check_path(savepath)
+
+        for i, (sample, target, meta) in enumerate(zip(X, Y, Z)):
+            torch.save(sample, os.path.join(self.savepath, f'sample_{i}.pt'))
+            torch.save(target, os.path.join(self.savepath, f'target_{i}.pt'))
+
+            if meta is not None:
+                torch.save(meta, os.path.join(self.savepath, f'meta_{i}.pt'))
+
+    def __getitem__(self, idx):
+        """
+        Returns a processed data sample and its target with optional metadata from the dataset.
+
+        Args:
+            idx: An integer representing the index of the data sample.
+
+        Returns:
+            X: A PyTorch Tensor representing the processed input data sample.
+            Y: A PyTorch Tensor representing the processed target data.
+            Z: A PyTorch Tensor representing the processed metadata, or None if not available.
+
+        """
+        sample_path = os.path.join(self.savepath, f'sample_{idx}.pt')
+        target_path = os.path.join(self.savepath, f'target_{idx}.pt')
+        meta_path = os.path.join(self.savepath, f'meta_{idx}.pt')
+
+        X = torch.load(sample_path)
+        Y = torch.load(target_path)
+        Z = torch.load(meta_path) if os.path.exists(meta_path) else None
+
+        if self.transform:
+            X = self.transform(X)
+
+        if self.target_transform:
+            Y = self.target_transform(Y)
+
+        return X, Y, Z
