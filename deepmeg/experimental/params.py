@@ -5,7 +5,7 @@ from typing import Any
 import os
 import numpy as np
 from .interpreters import SPIRITInterpreter
-from ..utils.params import LFCNNParameters, SpatialParameters, SpectralParameters, TemporalParameters, compute_induceds
+from ..utils.params import LFCNNParameters, SpatialParameters, SpectralParameters, TemporalParameters, compute_spectrums
 import scipy.signal as sl
 import scipy as sp
 
