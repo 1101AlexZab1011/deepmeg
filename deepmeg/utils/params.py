@@ -11,7 +11,7 @@ import scipy as sp
 
 SpatialParameters = namedtuple('SpatialParameters', 'patterns filters')
 SpectralParameters = namedtuple('SpectralParameters', 'range inputs outputs responses patterns')
-TemporalParameters = namedtuple('TemporalParameters', 'times time_courses time_courses_filtered induceds induceds_filtered patterns', defaults=[None])
+TemporalParameters = namedtuple('TemporalParameters', 'times time_courses time_courses_filtered spectrums spectrums_filtered patterns', defaults=[None])
 Predictions = namedtuple('Predictions', 'y_p y_true')
 
 
@@ -93,9 +93,9 @@ def compute_morlet_cwt(
         return np.real(cwtmatr)**2 + np.imag(cwtmatr)**2
 
 
-def compute_induceds(interpreter: LFCNNInterpreter) -> tuple[np.ndarray, np.ndarray]:
+def compute_spectrums(interpreter: LFCNNInterpreter) -> tuple[np.ndarray, np.ndarray]:
     """
-    Computes induced activity of latent sources.
+    Computes spectrum of latent sources activity.
 
     Args:
         interpreter (LFCNNInterpreter): Instance of the LFCNNInterpreter class.
@@ -106,21 +106,21 @@ def compute_induceds(interpreter: LFCNNInterpreter) -> tuple[np.ndarray, np.ndar
     """
     time_courses = np.transpose(interpreter.latent_sources, (1, 0, 2))
     time_courses_filtered = np.transpose(interpreter.latent_sources_filtered, (1, 0, 2))
-    induceds = list()
-    induceds_filt = list()
+    spectrums = list()
+    spectrums_filt = list()
 
     for tc, tc_filt in zip(time_courses, time_courses_filtered):
-        ls_induceds = list()
-        ls_induceds_filt = list()
+        ls_spectrums = list()
+        ls_spectrums_filt = list()
 
         for lc, lc_filt in zip(tc, tc_filt):
-            ls_induceds.append(np.abs(compute_morlet_cwt(lc, interpreter.info['sfreq'], 15)))#, 7.5)))
-            ls_induceds_filt.append(np.abs(compute_morlet_cwt(lc_filt, interpreter.info['sfreq'], 15)))#, 7.5)))
+            ls_spectrums.append(np.abs(compute_morlet_cwt(lc, interpreter.info['sfreq'], 15)))#, 7.5)))
+            ls_spectrums_filt.append(np.abs(compute_morlet_cwt(lc_filt, interpreter.info['sfreq'], 15)))#, 7.5)))
 
-        induceds.append(np.array(ls_induceds).mean(axis=0))
-        induceds_filt.append(np.array(ls_induceds_filt).mean(axis=0))
+        spectrums.append(np.array(ls_spectrums))#.mean(axis=0))
+        spectrums_filt.append(np.array(ls_spectrums_filt))#.mean(axis=0))
 
-    return np.array(induceds), np.array(induceds_filt)
+    return np.array(spectrums), np.array(spectrums_filt)
 
 
 class NetworkParameters(ABC):
@@ -236,7 +236,7 @@ class LFCNNParameters(NetworkParameters):
             interpreter.filter_patterns
         )
         times = np.arange(0, interpreter.latent_sources.shape[-1]/interpreter.info['sfreq'], 1/interpreter.info['sfreq'])
-        spectrums, spectrums_filtered = compute_induceds(interpreter)
+        spectrums, spectrums_filtered = compute_spectrums(interpreter)
         self._temporal = TemporalParameters(
             times,
             interpreter.latent_sources,

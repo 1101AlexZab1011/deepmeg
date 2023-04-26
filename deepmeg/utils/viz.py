@@ -289,7 +289,7 @@ class FilterButtonCallback:
             :self.f_max,
             :
         ] if self.filtered else\
-            self.plotter.params.temporal.induceds_filtered[
+            self.plotter.params.temporal.induceds_filtered.mean(0)[
             self.sorter.sorted_indices[self.iy],
             :self.f_max,
             :

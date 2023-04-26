@@ -8,6 +8,7 @@ from .callbacks import Callback
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from ..utils.printout import nostdout
+from typing import Iterable
 
 
 class Trainer:
@@ -64,6 +65,23 @@ class Trainer:
         else:
             self.callbacks = callbacks
 
+    def attach_tensors_to_device(self, *tensors: torch.Tensor):
+        """
+        Attaches a list of tensors to the device.
+
+        Args:
+            *tensors (torch.Tensor): the tensors to be attached to the device.
+
+        """
+        for tensorgroup in tensors:
+            if isinstance(tensorgroup, torch.Tensor):
+                tensorgroup.to(self.device)
+            elif isinstance(tensorgroup, Iterable):
+                for tensor in tensorgroup:
+                    tensor.to(self.device)
+            else:
+                raise ValueError(f'Cannot attach {type(tensorgroup)} to device')
+
     def interrupt(self, interrupt: bool = True):
         """Immediately stop training/evaluation"""
         self._interrupt = interrupt
@@ -90,8 +108,7 @@ class Trainer:
             try:
                 xs, ys_true = next(val_iterator)
 
-                xs = xs.to(self.device)
-                ys_true = ys_true.to(self.device)
+                self.attach_tensors_to_device(xs, ys_true)
 
                 if self.callbacks:
                     for callback in self.callbacks:
@@ -202,8 +219,7 @@ class Trainer:
             try:
                 xs, ys_true = next(train_iterator)
 
-                xs = xs.to(self.device)
-                ys_true = ys_true.to(self.device)
+                self.attach_tensors_to_device(xs, ys_true)
 
                 if self.callbacks:
                     for callback in self.callbacks:
