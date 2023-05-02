@@ -284,16 +284,16 @@ class FilterButtonCallback:
         evoked = self.plotter.params.temporal.time_courses.mean(0)[self.sorter.sorted_indices[self.iy]][self.crop:-self.crop] if self.filtered else\
             self.plotter.params.temporal.time_courses_filtered.mean(0)[self.sorter.sorted_indices[self.iy]][self.crop:-self.crop]
 
-        induced = self.plotter.params.temporal.spectrums.mean(0)[
+        induced = self.plotter.params.temporal.spectrums[
             self.sorter.sorted_indices[self.iy],
             :self.f_max,
             :
-        ] if self.filtered else\
-            self.plotter.params.temporal.spectrums_filtered.mean(0)[
+        ].mean(0) if self.filtered else\
+            self.plotter.params.temporal.spectrums_filtered[
             self.sorter.sorted_indices[self.iy],
             :self.f_max,
             :
-        ]
+        ].mean(0)
         induced = rowwise_zscore(induced)[:, self.crop:-self.crop]
         self.axes[1].axes.clear()
         self.axes[2].axes.clear()
@@ -614,7 +614,7 @@ class InterpretationPlotter:
             ax22 = fig2.add_subplot(gs2[0:5, -7:])
             ax22_t = ax22.twinx()
 
-            induced = self.params.temporal.spectrums.mean(0)[sorting_callback.sorted_indices[iy]]
+            induced = self.params.temporal.spectrums[sorting_callback.sorted_indices[iy]].mean(0)
 
             induced_norm = rowwise_zscore(induced)
 
