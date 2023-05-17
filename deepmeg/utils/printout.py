@@ -54,8 +54,64 @@ def nostdout() -> Generator:
     sys.stdout = save_stdout
 
 
-def edit_previous_line(text: str, line: int = 1, *, return_str: bool = False):
+def edit_previous_line(text: str, line: int = 1, *, return_str: bool = False) -> str | None:
+    """
+    Edits the content of a previous line in the console output.
+
+    Args:
+        text (str): The updated text to replace the content of the previous line.
+        line (int, optional): The number of lines to move up from the current line. Default is 1.
+        return_str (bool, optional): Flag indicating whether to return the modified string instead of printing it.
+                                     Default is False.
+
+    Returns:
+        None or str: If `return_str` is True, the modified string with appropriate line breaks is returned.
+                    Otherwise, the modified string is printed to the console.
+    """
     out = f'\033[{line}F\033[K{text}'
+    for i in range(line - 1):
+        out += '\n'
+    if return_str:
+        return out
+    else:
+        print(out)
+
+def delete_previous_line(line: int = 1, *, return_str: bool = False) -> str | None:
+    """
+    Deletes the content of a previous line in the console output.
+
+    Args:
+        line (int, optional): The number of lines to move up from the current line. Default is 1.
+        return_str (bool, optional): Flag indicating whether to return the modified string instead of printing it.
+                                     Default is False.
+
+    Returns:
+        None or str: If `return_str` is True, the modified string with appropriate line breaks is returned.
+                    Otherwise, the modified string is printed to the console.
+    """
+    out = f'\033[{line}F\033[M\033[A'
+    for i in range(line - 1):
+        out += '\n'
+    if return_str:
+        return out
+    else:
+        print(out)
+
+
+def erase_previous_line(line: int = 1, *, return_str: bool = False) -> str | None:
+    """
+    Erases the content of a previous line in the console output.
+
+    Args:
+        line (int, optional): The number of lines to move up from the current line. Default is 1.
+        return_str (bool, optional): Flag indicating whether to return the modified string instead of printing it.
+                                     Default is False.
+
+    Returns:
+        None or str: If `return_str` is True, the modified string with appropriate line breaks is returned.
+                    Otherwise, the modified string is printed to the console.
+    """
+    out = f'\033[{line}F\033[K'
     for i in range(line - 1):
         out += '\n'
     if return_str:
@@ -69,7 +125,20 @@ def add_line_above(
     line: int = 1,
     *,
     return_str: bool = False
-):
+) -> str | None:
+    """
+    Adds a line with specified text above the current line in the console output.
+
+    Args:
+        text (str, optional): The text to be added above the current line. Default is an empty string.
+        line (int, optional): The number of lines to move up from the current line. Default is 1.
+        return_str (bool, optional): Flag indicating whether to return the modified string instead of printing it.
+                                     Default is False.
+
+    Returns:
+        None or str: If `return_str` is True, the modified string with appropriate line breaks is returned.
+                    Otherwise, the modified string is printed to the console.
+    """
     out = f'\033[{line}F\033[L{text}'
     for i in range(line):
         out += '\n'
@@ -112,6 +181,39 @@ def scatter(
     curve_labels : list[str] = None,
     current_value_index: int = None,
 ) -> str:
+    """
+    Creates a scatter plot in the console using the plottile library.
+
+    Args:
+        *args (np.ndarray): Multiple arrays representing X and Y coordinates of points to be plotted.
+        width (int, optional): Width of the plot in characters. Default is 80.
+        height (int, optional): Height of the plot in characters. Default is 40.
+        X_label (str, optional): Label for the X-axis. Default is 'X'.
+        Y_label (str, optional): Label for the Y-axis. Default is 'Y'.
+        linesep (str, optional): Line separator character. Default is os.linesep.
+        x_min (float, optional): Minimum value for the X-axis.
+        x_max (float, optional): Maximum value for the X-axis.
+        y_min (float, optional): Minimum value for the Y-axis.
+        y_max (float, optional): Maximum value for the Y-axis.
+        color (str or list[str], optional): Color or list of colors for the scatter plot. Default is None.
+        bg (str, optional): Background color of the plot. Default is None.
+        color_mode (str, optional): Color mode for the plot. Default is 'names'.
+        origin (bool, optional): Flag indicating whether to display the origin (0, 0) on the plot. Default is True.
+        markers (str, optional): Marker style or list of marker styles for the scatter plot. Default is None.
+        xtick_fmt (Callable[[int, int], str], optional): Function to format X-axis tick labels. Default is str_tick.
+        ytick_fmt (Callable[[int, int], str], optional): Function to format Y-axis tick labels. Default is str_tick.
+        curve_labels (list[str], optional): List of labels for each curve in the plot. Default is None.
+        current_value_index (int, optional): Index of the current value to be displayed on the plot. Default is None.
+
+    Returns:
+        str: The scatter plot representation as a string.
+
+    Raises:
+        ValueError: If the number of parameters to plot is not even.
+        ValueError: If markers for curves are inconsistent with the number of curves.
+        ValueError: If labels for curves are inconsistent with the number of curves.
+        ValueError: If colors and lines to plot are inconsistent.
+    """
 
     if len(args) == 1:
         t = [np.linspace(0, len(args), len(args))]
@@ -179,8 +281,34 @@ def scatter(
     return fig.show(legend=True)
 
 class MetricsConsolePlotter:
+    """A class for plotting deep learning metrics and losses into the console while learning.
+
+    Args:
+        n_epochs (int): The total number of epochs.
+        width (int, optional): The width of the plot in characters. Default is 40.
+        height (int, optional): The height of the plot in characters. Default is 5.
+        loss_colors (str or list[str], optional): Colors for loss curves. Default is None.
+        metric_colors (str or list[str], optional): Colors for metric curves. Default is None.
+        loss_label (str, optional): Label for the loss plot. Default is 'Loss'.
+        metric_label (str, optional): Label for the metric plot. Default is 'Metric'.
+        metric_names (list[str], optional): Names for the metric curves. Default is ['train', 'val'].
+        loss_names (list[str], optional): Names for the loss curves. Default is ['train', 'val'].
+        metric_range (tuple(float, float), optional): Range for the metric plot. Default is (0, 102).
+
+    Methods:
+        __call__(self, loss, metric):
+            Plots the loss and metric values and returns the plot data as a list of strings.
+    """
     @staticmethod
     def __validate_list(value):
+        """Validate and convert a value to a list if necessary.
+
+        Args:
+            value: The value to validate.
+
+        Returns:
+            list: The validated list.
+        """
         if isinstance(value, Sequence) and not isinstance(value, str):
             if isinstance(value, list):
                 return value
@@ -193,14 +321,39 @@ class MetricsConsolePlotter:
 
     @staticmethod
     def __min_value(values: list[list[float]]) -> float:
+        """Find the minimum value in a nested list of floats.
+
+        Args:
+            values (list[list[float]]): The nested list of floats.
+
+        Returns:
+            float: The minimum value.
+        """
         return min([min(data) for data in values])
 
     @staticmethod
     def __max_value(values: list[list[float]]) -> float:
+        """Find the maximum value in a nested list of floats.
+
+        Args:
+            values (list[list[float]]): The nested list of floats.
+
+        Returns:
+            float: The maximum value.
+        """
         return max([max(data) for data in values])
 
     @staticmethod
     def __zip_data(data1: list, data2: list) -> list:
+        """Zip two lists of metric & losses data together.
+
+        Args:
+            data1 (list): The first list of data.
+            data2 (list): The second list of data.
+
+        Returns:
+            list: The zipped list.
+        """
         out = list()
 
         for sample1, sample2 in zip(data1, data2):
@@ -211,7 +364,15 @@ class MetricsConsolePlotter:
 
     @staticmethod
     def __update_history(history: list[list[float]], values: list[float]) -> None:
+        """Update the ongoing history to plot with new values.
 
+        Args:
+            history (list[list[float]]): The history of values.
+            values (list[float]): The new values to add to the history.
+
+        Returns:
+            None
+        """
         if history:
             for i, v in enumerate(values):
                 history[i].append(v)
@@ -221,6 +382,16 @@ class MetricsConsolePlotter:
 
     @staticmethod
     def __fill_seq(sequence1: Sequence, sequence2: Sequence, value: float = 0):
+        """Fill a sequence with a value to match the length of another sequence.
+
+        Args:
+            sequence1 (Sequence): The first sequence.
+            sequence2 (Sequence): The second sequence.
+            value (float, optional): The value to fill. Default is 0.
+
+        Returns:
+            list: The filled sequence.
+        """
         if len(sequence1) > len(sequence2):
             sequence1, sequence2 = sequence2, sequence1
         diff = len(sequence2) - len(sequence1)
@@ -246,6 +417,23 @@ class MetricsConsolePlotter:
         loss_names = ['train', 'val'],
         metric_range = (0, 102),
     ):
+        """Initialize the MetricsConsolePlotter.
+
+        Args:
+            n_epochs (int): The total number of epochs.
+            width (int, optional): The width of the plot in characters. Default is 40.
+            height (int, optional): The height of the plot in characters. Default is 5.
+            loss_colors (str or list[str], optional): Colors for loss curves. Default is None.
+            metric_colors (str or list[str], optional): Colors for metric curves. Default is None.
+            loss_label (str, optional): Label for the loss plot. Default is 'Loss'.
+            metric_label (str, optional): Label for the metric plot. Default is 'Metric'.
+            metric_names (list[str], optional): Names for the metric curves. Default is ['train', 'val'].
+            loss_names (list[str], optional): Names for the loss curves. Default is ['train', 'val'].
+            metric_range (tuple(float, float), optional): Range for the metric plot. Default is (0, 102).
+
+        Returns:
+            None
+        """
         self.n_epochs = n_epochs
         self.t = np.linspace(0, n_epochs, n_epochs)
         self.losses = list()
@@ -262,6 +450,15 @@ class MetricsConsolePlotter:
         self.metric_range = metric_range
 
     def __call__(self, loss: float | list[float], metric: float | list[float]) -> list[str]:
+        """Plot the loss and metric values and return the plot data as a list of strings.
+
+        Args:
+            loss (float or list[float]): The loss value(s) to plot.
+            metric (float or list[float]): The metric value(s) to plot.
+
+        Returns:
+            list[str]: The plot data as a list of strings.
+        """
         loss = self.__validate_list(loss)
         metric = self.__validate_list(metric)
         self.__update_history(self.losses, loss)

@@ -423,6 +423,38 @@ class L2Reg(L1Reg):
 
 
 class VisualizingCallback(PrintingCallback):
+    """A callback for visualizing and printing metrics during the training loop of a Trainer.
+
+    This callback extends the `PrintingCallback` and adds functionality to visualize and print
+    metrics and losses using the `MetricsConsolePlotter` class.
+
+    Args:
+        n_epochs (int): The total number of epochs.
+        width (int, optional): The width of the plot in characters. Default is 40.
+        height (int, optional): The height of the plot in characters. Default is 5.
+        loss_colors (str or list[str], optional): Colors for loss curves. Default is None.
+        metric_colors (str or list[str], optional): Colors for metric curves. Default is None.
+        loss_label (str, optional): Label for the loss plot. Default is 'Loss'.
+        metric_label (str, optional): Label for the metric plot. Default is 'Metric'.
+        metric_names (list[str], optional): Names for the metric curves. Default is ['train_acc', 'val_acc'].
+        loss_names (list[str], optional): Names for the loss curves. Default is ['train_loss', 'val_loss'].
+        sep (str, optional): Separator string between printed metrics. Default is '   |    '.
+        format_fn (Callable[[int, dict[str, float]], str], optional): Formatting function for printing metrics. Default is None.
+        print_history (bool, optional): Whether to print the history of metrics. Default is True.
+        metric_scaler (int, optional): Scaling factor for metric values. Default is 100.
+
+    Attributes:
+        print_history (bool): Whether to print the history of metrics.
+        n_lines (int): Number of lines in the plot.
+        metric_names (list[str]): Names of the metric curves.
+        loss_names (list[str]): Names of the loss curves.
+        metric_scaler (int): Scaling factor for metric values.
+        plotter (MetricsConsolePlotter): Instance of the MetricsConsolePlotter class.
+
+    Methods:
+        on_epoch_end(self, epoch_num, metrics):
+            Called at the end of each epoch to plot and print the metrics.
+    """
     def __init__(
         self,
         n_epochs: int,
@@ -439,6 +471,26 @@ class VisualizingCallback(PrintingCallback):
         print_history: bool = True,
         metric_scaler: int = 100
     ):
+        """Initialize the VisualizingCallback object.
+
+        Args:
+            n_epochs (int): The total number of epochs.
+            width (int, optional): The width of the plot in characters. Default is 40.
+            height (int, optional): The height of the plot in characters. Default is 5.
+            loss_colors (str or list[str], optional): Colors for loss curves. Default is None.
+            metric_colors (str or list[str], optional): Colors for metric curves. Default is None.
+            loss_label (str, optional): Label for the loss plot. Default is 'Loss'.
+            metric_label (str, optional): Label for the metric plot. Default is 'Metric'.
+            metric_names (list[str], optional): Names for the metric curves. Default is ['train_acc', 'val_acc'].
+            loss_names (list[str], optional): Names for the loss curves. Default is ['train_loss', 'val_loss'].
+            sep (str, optional): Separator string between printed metrics. Default is '   |    '.
+            format_fn (Callable[[int, dict[str, float]], str], optional): Formatting function for printing metrics. Default is None.
+            print_history (bool, optional): Whether to print the history of metrics. Default is True.
+            metric_scaler (int, optional): Scaling factor for metric values. Default is 100.
+
+        Returns:
+            None
+        """
         self.print_history = print_history
         self.n_lines = None
         self.metric_names = metric_names
@@ -458,6 +510,15 @@ class VisualizingCallback(PrintingCallback):
         super().__init__(sep, format_fn)
 
     def on_epoch_end(self, epoch_num, metrics):
+        """Called at the end of each epoch to plot and print the metrics.
+
+        Args:
+            epoch_num (int): The current epoch number.
+            metrics (dict[str, float]): Dictionary containing the metric values.
+
+        Returns:
+            None
+        """
         if self.print_history:
             if self.format_fn:
                 text = self.format_fn(epoch_num, metrics, self.sep)
