@@ -1,7 +1,10 @@
+import os
 from typing import Callable, TypeVar
 import torch
 import numpy as np
 from copy import deepcopy
+
+from deepmeg.utils.printout import MetricsConsolePlotter, add_line_above, edit_previous_line
 
 
 Trainer = TypeVar('Trainer')
@@ -417,3 +420,61 @@ class L2Reg(L1Reg):
             loss += lambda_*torch.norm(state_dict[layer_name], 2)
 
         return loss
+
+
+class VisualizingCallback(PrintingCallback):
+    def __init__(
+        self,
+        n_epochs: int,
+        width: int = 40,
+        height: int = 5,
+        loss_colors: str | list[str] = None,
+        metric_colors: str | list[str] = None,
+        loss_label = 'Loss',
+        metric_label = 'Metric',
+        metric_names = ['train_acc', 'val_acc'],
+        loss_names = ['train_loss', 'val_loss'],
+        sep = '   |    ',
+        format_fn: Callable[[int, dict[str, float]], str] = None,
+        print_history: bool = True
+    ):
+        self.print_history = print_history
+        self.n_lines = None
+        self.plotter = MetricsConsolePlotter(
+            n_epochs,
+            width,
+            height,
+            loss_colors,
+            metric_colors,
+            loss_label,
+            metric_label,
+            metric_names,
+            loss_names
+        )
+        super().__init__(sep, format_fn)
+
+    def on_epoch_end(self, epoch_num, metrics):
+        if self.print_history:
+            if self.format_fn:
+                text = self.format_fn(epoch_num, metrics, self.sep)
+            else:
+                text = self.default_format_fn(epoch_num, metrics, self.sep)
+
+        l, a = list(), list()
+        for metric in metrics:
+            if metric in self.metric_names:
+                a.append(metrics[metric])
+            elif metric in self.loss_names:
+                l.append(metrics[metric])
+
+        plot_data = self.plotter(l, a)
+
+        if not n_lines:
+            n_lines = len(plot_data)
+            print((os.linesep).join(plot_data))
+        else:
+            for i, line in enumerate(plot_data):
+                edit_previous_line(line, n_lines - i)
+
+        if self.print_history:
+            add_line_above(text, n_lines)

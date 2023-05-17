@@ -1,58 +1,13 @@
-import contextlib
-from functools import partial
 import os
 import sys
-from tqdm import tqdm
-from typing import Generator, TextIO, Callable
-import numpy as np
+sys.path.insert(1, os.path.realpath(os.path.pardir))
+sys.path.insert(1, './')
 import plotille as pt
+import numpy as np
+import time
+from deepmeg.utils.printout import nostdout
 from collections.abc import Sequence
-
-
-class DummyFile(object):
-    """
-    A class that wraps a file object, replacing the 'write' method to avoid print() second call (useless \\n).
-    """
-    file: TextIO
-    def __init__(self, file: TextIO):
-        """
-        Initialize the DummyFile object.
-
-        Args:
-            - file (TextIO) : The file object to be wrapped.
-        """
-        self.file = file
-
-    def write(self, x: str):
-        """
-        Writes the given string to the wrapped file object, avoiding print() second call (useless \\n).
-
-        Args:
-            - x (str) : the string to be written.
-        """
-        # Avoid print() second call (useless \n)
-        if len(x.rstrip()) > 0:
-            tqdm.write(x, file=self.file)
-
-    def flush(self):
-        self.file.flush()
-    def isatty(self):
-        return self.file.isatty()
-
-@contextlib.contextmanager
-def nostdout() -> Generator:
-    """
-    A context manager that temporarily redirects the stdout to a DummyFile object.
-    """
-    if not isinstance(sys.stdout, DummyFile):
-        save_stdout = sys.stdout
-    else:
-        save_stdout = sys.stdout.file
-
-    sys.stdout = DummyFile(save_stdout)
-    yield
-    sys.stdout = save_stdout
-
+from functools import partial
 
 def edit_previous_line(text: str, line: int = 1, *, return_str: bool = False):
     out = f'\033[{line}F\033[K{text}'
@@ -79,6 +34,105 @@ def add_line_above(
         print(out)
 
 
+n_lines = None
+x = np.linspace(0, 10, 100)
+
+# fig = pt.Figure()
+# fig.height = 10
+# fig.width = 40
+
+# sin_strings = pt.scatter(x, np.sin(x + 10), lc='red', height = 10, width= 20).split('\n')
+# # sin_strings = fig.show().split('\n')
+# # fig.clear()
+# cos_strings = pt.scatter(x, np.cos(x + 10), lc='red', height = 10, width= 20).split('\n')
+# # cos_strings = fig.show().split('\n')
+
+# if n_lines is None:
+#     n_lines = len(sin_strings)
+#     lines = [ line1 + line2.rjust(40, 'p') for line1, line2 in zip(sin_strings, cos_strings)]
+#     print('\n'.join(lines))
+
+
+# for i in range(1000):
+
+#     fig = pt.Figure()
+#     fig.height = 10
+#     fig.width = 40
+
+#     fig.scatter(x, np.sin(x + i), lc='red')
+#     sin_strings = fig.show().split('\n')
+#     fig.clear()
+#     fig.scatter(x, np.cos(x + i), lc='red')
+#     cos_strings = fig.show().split('\n')
+#     max_line = len(lines_1[-1])
+
+#     if n_lines is None:
+#         n_lines = len(sin_strings)
+#         lines = [ line1 + line2.rjust(40, ' ') for line1, line2 in zip(sin_strings, cos_strings)]
+#         print('\n'.join(lines))
+#     else:
+#         for i, (sstring, cstring) in enumerate(zip(sin_strings, cos_strings)):
+#             if len(cstring) < 40:
+#                 # cstring = ('.' * (40 - len(cstring))) + cstring
+#                 cstring = '                   ' + cstring
+#             edit_previous_line(cstring, n_lines - i)
+#     time.sleep(.1)
+
+# class Plotter:
+#     def __init__(self, n_iters):
+#         self.n_iters = n_iters
+#         self.n_lines = None
+#     def __iter__(self):
+#         self.__current_index = 0
+#         return self
+
+#     def __next__(self):
+#         if self.__current_index < self.n_iters:
+#             fig = pt.Figure()
+#             fig.height = 10
+#             fig.width = 20
+#             x = np.linspace(0, 10, 100)
+
+#             fig.scatter(x, np.sin(x + self.__current_index), lc='red')
+#             strings = fig.show().split('\n')
+#             if self.n_lines is None:
+#                 self.n_lines = len(strings)
+#                 print(fig.show())
+#             else:
+#                 for i, string in enumerate(strings):
+#                     edit_previous_line(string, (self.n_lines - i))
+#             self.__current_index += 1
+#             return self.__current_index - 1
+#         else:
+#             raise StopIteration
+
+from tqdm import tqdm
+
+# n_lines = None
+# x = np.linspace(0, 10, 100)
+# for i in tqdm(range(100)):
+
+#     with nostdout():
+
+#             fig = pt.Figure()
+#             fig.height = 10
+#             fig.width = 20
+
+#             fig.scatter(x, np.sin(x + i), lc='red')
+
+#             strings = fig.show().split('\n')
+#             if n_lines is None:
+#                 n_lines = len(strings)
+#                 print(fig.show())
+#             else:
+#                 for i, string in enumerate(strings):
+#                     edit_previous_line(string, n_lines - i)
+#             time.sleep(.1)
+
+# last_element = lines.pop()
+        # lines.insert(0, last_element)
+        # lines_1.append(lines_1[-1])
+
 def insert_elem(lst: list, from_index: int, to_index: int) -> None:
     lst.insert(to_index, lst.pop(from_index))
 
@@ -91,27 +145,13 @@ def str_tick(min_, max_, n=0, transform=None):
     formatter = '{' + f':.{n}f' + '}'
     return formatter.format(min_)
 
-def scatter(
-    *args: np.ndarray,
-    width: int = 80,
-    height: int = 40,
-    X_label: str = 'X',
-    Y_label: str = 'Y',
-    linesep: str = os.linesep,
-    x_min: float = None,
-    x_max: float = None,
-    y_min: float = None,
-    y_max: float = None,
-    color: str | list[str] = None,
-    bg: str = None,
-    color_mode: str = 'names',
-    origin: bool = True,
-    markers: str = None,
-    xtick_fmt: Callable[[int, int], str] = str_tick,
-    ytick_fmt: Callable[[int, int], str] = partial(str_tick, n=2),
-    curve_labels : list[str] = None,
-    current_value_index: int = None,
-) -> str:
+def scatter(*args, width=80, height=40, X_label='X', Y_label='Y', linesep=os.linesep,
+         x_min=None, x_max=None, y_min=None, y_max=None,
+         color=None, bg=None, color_mode='names', origin=True,
+         markers=None, xtick_fmt=str_tick, ytick_fmt=partial(str_tick, n=2),
+         curve_labels=None,
+         current_value_index=None,
+        ):
 
     if len(args) == 1:
         t = [np.linspace(0, len(args), len(args))]
@@ -193,6 +233,8 @@ class MetricsConsolePlotter:
 
     @staticmethod
     def __min_value(values: list[list[float]]) -> float:
+        # print(values)
+        # print([min(data) for data in values], min([min(data) for data in values]))
         return min([min(data) for data in values])
 
     @staticmethod
@@ -359,3 +401,139 @@ class MetricsConsolePlotter:
         plot_data = [l1 + l2 for (l1, l2) in zip(lines_1, lines_2)]
 
         return plot_data
+
+
+
+from deepmeg.training.callbacks import Callback, PrintingCallback
+from typing import Callable
+
+class VisualizingCallback(PrintingCallback):
+    def __init__(
+        self,
+        n_epochs: int,
+        width: int = 40,
+        height: int = 5,
+        loss_colors: str | list[str] = None,
+        metric_colors: str | list[str] = None,
+        loss_label = 'Loss',
+        metric_label = 'Metric',
+        metric_names = ['train_acc', 'val_acc'],
+        loss_names = ['train_loss', 'val_loss'],
+        sep = '   |    ',
+        format_fn: Callable[[int, dict[str, float]], str] = None,
+        print_history: bool = True
+    ):
+        self.print_history = print_history
+        self.n_lines = None
+        self.plotter = MetricsConsolePlotter(
+            n_epochs,
+            width,
+            height,
+            loss_colors,
+            metric_colors,
+            loss_label,
+            metric_label,
+            metric_names,
+            loss_names
+        )
+        super().__init__(sep, format_fn)
+
+    def on_epoch_end(self, epoch_num, metrics):
+        if self.print_history:
+            if self.format_fn:
+                text = self.format_fn(epoch_num, metrics, self.sep)
+            else:
+                text = self.default_format_fn(epoch_num, metrics, self.sep)
+
+        l, a = list(), list()
+        for metric in metrics:
+            if metric in self.metric_names:
+                a.append(metrics[metric])
+            elif metric in self.loss_names:
+                l.append(metrics[metric])
+
+        plot_data = self.plotter(l, a)
+
+        if not n_lines:
+            n_lines = len(plot_data)
+            print((os.linesep).join(plot_data))
+        else:
+            for i, line in enumerate(plot_data):
+                edit_previous_line(line, n_lines - i)
+
+        if self.print_history:
+            add_line_above(text, n_lines)
+
+
+
+if __name__ == '__main__':
+    plotter = MetricsConsolePlotter(
+        150,
+        metric_colors = ['blue', 'yellow', 'green'],
+        loss_colors = ['red', 'magenta', 'cyan', 'white'],
+        metric_label = 'Accuracy',
+        loss_label = 'Mse',
+        height=10,
+        metric_names = ['train_acc', 'val_acc', 'test_acc'],#, 'dev'],#, 'dev2'],
+        loss_names=['train_mse', 'val_mse', 'test_mse', 'dev_mse']
+    )
+    t = np.arange(150)
+    loss = [
+        10 - (np.sqrt(t) + np.random.random(150)),
+        8 - (np.sqrt(t)/2 + np.random.random(150)),
+        10 - (np.sqrt(t)/2.2 + np.random.random(150)),
+        5 - (np.sqrt(t)/2.2 + np.random.random(150)),
+    ]
+    # loss = [10 - (t + np.random.random(150)), 10 - (t/2 + np.random.random(150))]
+    acc = [10*np.sqrt(t) + np.random.random(150), 10*np.sqrt(t)/2, 10*np.sqrt(t)/4, 10*np.sqrt(t)/6, 5*np.sqrt(t)/2]
+    for a in acc:
+        a[a>100] = 100
+    # acc = np.sqrt(t)
+
+    n_lines = None
+
+    for n in tqdm(range(150), initial=0, total=150, file=sys.stdout):
+        with nostdout():
+            l = loss[0][n], loss[1][n], loss[2][n], loss[3][n]
+            a = acc[0][n], acc[1][n], acc[2][n]#, acc[3][n]#, acc[4][n]
+
+            plot_data = plotter(l, a)
+
+            if not n_lines:
+                n_lines = len(plot_data)
+                print((os.linesep).join(plot_data))
+            else:
+                for i, line in enumerate(plot_data):
+                    edit_previous_line(line, n_lines - i)
+            epoch_num = n
+            sep = '   |    '
+            metrics = {'mse_train': l[0], 'acc_train': a[0], 'mse_val': l[1], 'acc_val': a[1]}
+            add_line_above(
+                f'Epoch {epoch_num}:'.ljust(10, ' ') + sep.join(list(map(
+                    lambda x: f'{x[0]}: {x[1] : .4f}',
+                    metrics.items()
+                ))),
+                n_lines
+            )
+            time.sleep(.5)
+
+
+# def main():
+#     fig = pt.Figure()
+#     fig.width = 50
+#     fig.height = 20
+
+#     x = np.linspace(0, 2 * np.pi, 20)
+#     y = np.sin(x)
+#     fig.plot(x, y, lc='red')
+
+#     xs = [x[5]]
+#     ys = [y[5]]
+
+#     fig.text(xs, ys, ['x {:.3f}'.format(val) for val in ys], lc='green')
+
+#     print(fig.show(legend=True))
+
+
+# if __name__ == '__main__':
+#     main()
