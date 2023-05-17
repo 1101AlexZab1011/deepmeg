@@ -436,10 +436,14 @@ class VisualizingCallback(PrintingCallback):
         loss_names = ['train_loss', 'val_loss'],
         sep = '   |    ',
         format_fn: Callable[[int, dict[str, float]], str] = None,
-        print_history: bool = True
+        print_history: bool = True,
+        metric_scaler: int = 100
     ):
         self.print_history = print_history
         self.n_lines = None
+        self.metric_names = metric_names
+        self.loss_names = loss_names
+        self.metric_scaler = metric_scaler
         self.plotter = MetricsConsolePlotter(
             n_epochs,
             width,
@@ -463,18 +467,19 @@ class VisualizingCallback(PrintingCallback):
         l, a = list(), list()
         for metric in metrics:
             if metric in self.metric_names:
-                a.append(metrics[metric])
+                a.append(metrics[metric]*self.metric_scaler)
             elif metric in self.loss_names:
                 l.append(metrics[metric])
-
+        if not l or not a:
+            raise ValueError(f'No metrics or losses found: metric_names={self.metric_names}, loss_names={self.loss_names}, actual keys={metrics.keys()}')
         plot_data = self.plotter(l, a)
 
-        if not n_lines:
-            n_lines = len(plot_data)
+        if not self.n_lines:
+            self.n_lines = len(plot_data)
             print((os.linesep).join(plot_data))
         else:
             for i, line in enumerate(plot_data):
-                edit_previous_line(line, n_lines - i)
+                edit_previous_line(line, self.n_lines - i)
 
         if self.print_history:
-            add_line_above(text, n_lines)
+            add_line_above(text, self.n_lines)

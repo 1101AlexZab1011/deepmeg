@@ -243,7 +243,8 @@ class MetricsConsolePlotter:
         loss_label = 'Loss',
         metric_label = 'Metric',
         metric_names = ['train', 'val'],
-        loss_names = ['train', 'val']
+        loss_names = ['train', 'val'],
+        metric_range = (0, 102),
     ):
         self.n_epochs = n_epochs
         self.t = np.linspace(0, n_epochs, n_epochs)
@@ -258,6 +259,7 @@ class MetricsConsolePlotter:
         self.metric_label = metric_label
         self.metric_names = metric_names
         self.loss_names = loss_names
+        self.metric_range = metric_range
 
     def __call__(self, loss: float | list[float], metric: float | list[float]) -> list[str]:
         loss = self.__validate_list(loss)
@@ -300,7 +302,7 @@ class MetricsConsolePlotter:
             color=self.metric_colors,
             height=self.height, width=self.width, X_label=xlabel, Y_label=self.metric_label,
             x_min=0, x_max=self.n_epochs,
-            y_min=0, y_max=102,
+            y_min=self.metric_range[0], y_max=self.metric_range[1],
             ytick_fmt=partial(str_tick, n=0, transform=lambda x: round(x/10)*10),
             curve_labels=self.metric_names,
             current_value_index=len(self.metrics[0]) - 1
