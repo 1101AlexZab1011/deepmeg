@@ -142,6 +142,7 @@ class BaseModel(torch.nn.Module):
         callbacks: Callback | list[Callback] = None,
         trainer: Trainer = None,
         device: torch.device = None,
+        **trainer_kwargs
     ):
         """Compile the model with optimizer, loss, metrics, callbacks and trainer.
 
@@ -157,6 +158,7 @@ class BaseModel(torch.nn.Module):
                 If None, only callback for printing training progress will be used
             trainer (Trainer, optional): The trainer class used to train the model. Defaults to None. If None, Trainer is used.
             device (torch.device, optional): Device on which to train the model. Defaults to None. If None and cuda is available, cuda is used. Otherwise, cpu is used.
+            trainer_kwargs: Additional keyword arguments to be passed to the Trainer class.
 
         """
         if optimizer is None:
@@ -182,7 +184,7 @@ class BaseModel(torch.nn.Module):
 
         self.trainer = trainer(
             self, optimizer, loss, device, metrics,
-            callbacks=callbacks
+            callbacks=callbacks, **trainer_kwargs
         )
 
     def fit(
