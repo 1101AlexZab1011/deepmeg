@@ -544,3 +544,94 @@ class VisualizingCallback(PrintingCallback):
 
         if self.print_history:
             add_line_above(text, self.n_lines)
+
+
+class RepeatedEpochFitting(Callback):
+    """
+    A callback for performing repeated epoch fitting with best result optimization.
+
+    Args:
+        n_iters (int): Number of iterations to repeat the fitting on the same batch.
+        monitor (str): Name of the metric to monitor for determining the best result.
+        minimize (bool): Whether to minimize the monitored metric. If False, maximize it.
+    """
+
+    def __init__(self, n_iters: int = 5, monitor: str = 'loss_train', minimize: bool = True):
+        super().__init__()
+        self.n_iters = n_iters
+        self.monitor = monitor
+        self.minimize = minimize
+        self.reset_params()
+
+    def reset_params(self, best_epoch_weights: dict[str, torch.Tensor] = None, best_value: float = None) -> None:
+        """
+        Reset the internal parameters of the callback.
+
+        Args:
+            best_epoch_weights (Optional[Dict[str, Tensor]]): Initial best model weights.
+            best_value (Optional[float]): Initial best value of the monitored metric.
+        """
+        self.initial_epoch_weights = None
+        self.best_epoch_weights = best_epoch_weights
+        self.best_value = best_value
+        self.counter = 0
+
+    def reset_model(self, state_dict: dict[str, torch.Tensor]) -> None:
+        """
+        Reset the model's parameters to the given state.
+
+        Args:
+            state_dict (Dict[str, Tensor]): State dictionary containing model's parameters.
+        """
+        self.model.load_state_dict(state_dict)
+
+    def set_trainer(self, trainer: 'Trainer') -> None:
+        """
+        Bind the trainer to the callback.
+
+        Args:
+            trainer (Trainer): The trainer object to bind to the callback.
+        """
+        super().set_trainer(trainer)
+        self.model = self.trainer.model
+        self.criterion = self.trainer.criterion
+
+    def on_epoch_begin(self, n_epoch: int) -> None:
+        """
+        Called at the beginning of each epoch.
+
+        Args:
+            n_epoch (int): Index of the current epoch.
+        """
+        self.initial_epoch_weights = deepcopy(self.model.state_dict())
+
+        if self.best_epoch_weights is None:
+            self.best_epoch_weights = deepcopy(self.initial_epoch_weights)
+
+    def on_epoch_end(self, n_epoch: int, metrics: dict[str, float]) -> None:
+        """
+        Called at the end of each epoch.
+
+        Args:
+            n_epoch (int): Index of the current epoch.
+            metrics (Dict[str, float]): Dictionary of metrics computed during the epoch.
+        """
+        if self.counter < self.n_iters:
+
+            if self.best_value is None:
+                self.best_value = metrics[self.monitor]
+            else:
+                if self.minimize:
+                    if self.best_value > metrics[self.monitor]:
+                        self.best_value = metrics[self.monitor]
+                        self.best_epoch_weights = deepcopy(self.model.state_dict())
+                else:
+                    if self.best_value < metrics[self.monitor]:
+                        self.best_value = metrics[self.monitor]
+                        self.best_epoch_weights = deepcopy(self.model.state_dict())
+
+            self.reset_model(self.initial_epoch_weights)
+            self.counter += 1
+        else:
+            self.reset_model(self.best_epoch_weights)
+            self.reset_params(self.best_epoch_weights, self.best_value)

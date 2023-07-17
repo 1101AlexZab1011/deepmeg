@@ -211,7 +211,6 @@ class Trainer:
 
         predictions = []
         targets = []
-
         losses = []
 
         for real_batch_number in range(update_every_n_batches):
