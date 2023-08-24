@@ -88,7 +88,7 @@ class LFCNNInterpreter:
                 )
             patterns.append(torch.cov(x_filt_flatten)@self.model.unmixing_layer.weight[comp_num])
 
-        patterns = torch.squeeze(torch.stack(patterns, 1))@torch.cov(latent_sources_flatten)
+        patterns = torch.squeeze(torch.stack(patterns, 1))@torch.pinverse(torch.cov(latent_sources_flatten))
 
         return patterns.numpy(), filters
 
