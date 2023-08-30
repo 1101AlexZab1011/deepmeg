@@ -10,7 +10,7 @@ import scipy as sp
 
 
 SpatialParameters = namedtuple('SpatialParameters', 'patterns filters')
-SpectralParameters = namedtuple('SpectralParameters', 'range inputs outputs responses patterns')
+SpectralParameters = namedtuple('SpectralParameters', 'range inputs outputs responses patterns filters')
 TemporalParameters = namedtuple('TemporalParameters', 'times time_courses time_courses_filtered spectrums spectrums_filtered patterns', defaults=[None])
 Predictions = namedtuple('Predictions', 'y_p y_true')
 
@@ -233,7 +233,8 @@ class LFCNNParameters(NetworkParameters):
             interpreter.filter_inputs,
             interpreter.filter_outputs,
             interpreter.filter_responses,
-            interpreter.filter_patterns
+            interpreter.filter_patterns,
+            interpreter.filters
         )
         times = np.arange(0, interpreter.latent_sources.shape[-1]/interpreter.info['sfreq'], 1/interpreter.info['sfreq'])
         spectrums, spectrums_filtered = compute_spectrums(interpreter)

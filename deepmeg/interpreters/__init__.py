@@ -36,6 +36,7 @@ class LFCNNInterpreter:
         self._filter_responses = None
         self._filter_outputs = None
         self._filter_patterns = None
+        self._filters = None
         self._branchwise_loss = None
 
     @torch.no_grad()
@@ -158,7 +159,7 @@ class LFCNNInterpreter:
             fpatterns.append(finputs[-1]*fresponces[-1])
             foutputs.append(finputs[-1]*h*np.conj(h))
 
-        return frange, finputs, fresponces, foutputs, fpatterns
+        return frange, finputs, fresponces, foutputs, fpatterns, filters
 
     def __validate_spatial(self):
         """
@@ -177,12 +178,14 @@ class LFCNNInterpreter:
             or self._filter_inputs is None\
             or self._filter_responses is None\
             or self._filter_outputs is None\
-            or self._filter_patterns is None:
+            or self._filter_patterns is None\
+            or self._filters is None:
             self._frequency_range,\
                 self._filter_inputs,\
                 self._filter_responses,\
                 self._filter_outputs,\
-                self._filter_patterns = self.compute_specta()
+                self._filter_patterns,\
+                self._filters = self.compute_specta()
 
     def __validate_branchwise_estimate(self):
         """
@@ -286,6 +289,16 @@ class LFCNNInterpreter:
         """
         self.__validate_spectral()
         return self._filter_patterns
+    @property
+    def filters(self):
+        """
+        Get the temporal filters.
+
+        Returns:
+            List[numpy.ndarray]: The filters.
+        """
+        self.__validate_spectral()
+        return self._filters
     @property
     def branchwise_loss(self):
         """
